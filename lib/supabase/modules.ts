@@ -2,6 +2,17 @@ import { supabase } from '../supabase'
 import type { Module, View } from '@/types/module'
 import { getTableName } from '@/lib/utils/environment'
 
+// Interfaces para os retornos das consultas
+interface ViewAccessHistoryItem {
+  view_alias: string
+  accessed_at: string
+  view_id: string
+}
+
+interface ViewWithModule extends View {
+  module_name?: string
+}
+
 export async function getUserAccessibleViews(userRole: string, environment: string): Promise<{ data: View[] | null; error: string | null }> {
   try {
     const viewsTable = getTableName('views', environment)
@@ -141,44 +152,58 @@ export async function getRecentViews(userId: string, environment: string, limit:
     const historyTable = getTableName('view_access_history', environment)
     const viewsTable = getTableName('views', environment)
     
-    const { data, error } = await supabase
+    // Buscar histórico de acesso
+    const { data: historyData, error: historyError } = await supabase
       .from(historyTable)
-      .select(`
-        view_alias,
-        accessed_at,
-        view:${viewsTable}(
-          name,
-          description
-        )
-      `)
+      .select('view_alias, accessed_at, view_id')
       .eq('user_id', userId)
       .order('accessed_at', { ascending: false })
-      .limit(limit)
+      .limit(limit * 2) // Buscar mais para filtrar duplicatas
 
-    if (error) {
-      return { data: null, error: error.message }
+    if (historyError) {
+      return { data: null, error: historyError.message }
     }
 
-    // Remover duplicatas (manter apenas o acesso mais recente de cada view)
+    if (!historyData || historyData.length === 0) {
+      return { data: [], error: null }
+    }
+
+    // Buscar informações das views
+    const viewAliases = [...new Set(historyData.map(item => item.view_alias))]
+    const { data: viewsData, error: viewsError } = await supabase
+      .from(viewsTable)
+      .select('alias, name, description')
+      .in('alias', viewAliases)
+
+    if (viewsError) {
+      return { data: null, error: viewsError.message }
+    }
+
+    // Combinar dados e remover duplicatas
     const uniqueViews = new Map()
-    data?.forEach(item => {
-      if (!uniqueViews.has(item.view_alias)) {
-        uniqueViews.set(item.view_alias, {
-          id: item.view_alias,
-          title: item.view?.name || item.view_alias,
-          description: item.view?.description || 'View do sistema',
-          lastAccessed: new Date(item.accessed_at).toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+    
+    historyData.forEach((historyItem: ViewAccessHistoryItem) => {
+      if (!uniqueViews.has(historyItem.view_alias)) {
+        const viewInfo = viewsData?.find(v => v.alias === historyItem.view_alias)
+        if (viewInfo) {
+          uniqueViews.set(historyItem.view_alias, {
+            id: historyItem.view_alias,
+            title: viewInfo.name || historyItem.view_alias,
+            description: viewInfo.description || 'View do sistema',
+            lastAccessed: new Date(historyItem.accessed_at).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })
           })
-        })
+        }
       }
     })
 
-    return { data: Array.from(uniqueViews.values()), error: null }
+    const result = Array.from(uniqueViews.values()).slice(0, limit)
+    return { data: result, error: null }
   } catch (error) {
     return { data: null, error: 'Erro interno do servidor' }
   }
@@ -189,30 +214,48 @@ export async function getSuggestedViews(userRole: string, environment: string, l
     const viewsTable = getTableName('views', environment)
     const modulesTable = getTableName('modules', environment)
     
-    const { data, error } = await supabase
+    // Buscar views acessíveis
+    const { data: viewsData, error: viewsError } = await supabase
       .from(viewsTable)
-      .select(`
-        *,
-        module:${modulesTable}(
-          name,
-          alias
-        )
-      `)
+      .select('*')
       .eq('status', 'active')
       .contains('required_roles', [userRole])
       .order('created_at', { ascending: false })
       .limit(limit)
 
-    if (error) {
-      return { data: null, error: error.message }
+    if (viewsError) {
+      return { data: null, error: viewsError.message }
     }
 
-    const suggestedViews = data?.map(view => ({
-      id: view.alias,
-      title: view.name,
-      description: view.description,
-      category: view.module?.name || 'Sistema'
-    })) || []
+    if (!viewsData || viewsData.length === 0) {
+      return { data: [], error: null }
+    }
+
+    // Buscar informações dos módulos
+    const moduleIds = [...new Set(viewsData.map(view => view.module_id).filter(Boolean))]
+    let modulesData: any[] = []
+    
+    if (moduleIds.length > 0) {
+      const { data: modules, error: modulesError } = await supabase
+        .from(modulesTable)
+        .select('id, name, alias')
+        .in('id', moduleIds)
+
+      if (!modulesError && modules) {
+        modulesData = modules
+      }
+    }
+
+    // Combinar dados
+    const suggestedViews = viewsData.map((view: View) => {
+      const module = modulesData.find(m => m.id === view.module_id)
+      return {
+        id: view.alias,
+        title: view.name,
+        description: view.description,
+        category: module?.name || 'Sistema'
+      }
+    })
 
     return { data: suggestedViews, error: null }
   } catch (error) {

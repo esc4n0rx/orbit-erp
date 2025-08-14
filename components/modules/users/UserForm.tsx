@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { MessageBar } from '@/components/ui/message-bar'
 import { Loader2 } from 'lucide-react'
-import type { User, CreateUserData, UpdateUserData } from '@/types/user'
+import type { User, CreateUserData, UpdateUserData, CreateUserFormData, UpdateUserFormData } from '@/types/user'
 
 const createUserSchema = z.object({
   nome_completo: z.string().min(3, 'Nome completo deve ter pelo menos 3 caracteres'),
@@ -25,11 +25,17 @@ const createUserSchema = z.object({
   status: z.enum(['active', 'inactive'])
 })
 
-const updateUserSchema = createUserSchema.extend({
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').optional().or(z.literal(''))
+const updateUserSchema = z.object({
+  nome_completo: z.string().min(3, 'Nome completo deve ter pelo menos 3 caracteres'),
+  login: z.string().min(3, 'Nome de usuário deve ter pelo menos 3 caracteres').regex(/^[a-zA-Z0-9_]+$/, 'Nome de usuário deve conter apenas letras, números e underscore'),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  cpf: z.string().regex(/^\d{11}$/, 'CPF deve conter 11 dígitos'),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').optional().or(z.literal('')),
+  endereco: z.string().min(5, 'Endereço deve ter pelo menos 5 caracteres'),
+  funcao: z.string().min(2, 'Função deve ter pelo menos 2 caracteres'),
+  role: z.enum(['admin', 'user', 'support']),
+  status: z.enum(['active', 'inactive'])
 })
-
-type FormData = z.infer<typeof createUserSchema>
 
 interface UserFormProps {
   mode: 'create' | 'edit' | 'view'
@@ -42,7 +48,11 @@ interface UserFormProps {
 export default function UserForm({ mode, user, onSubmit, loading = false, error }: UserFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   
-  const schema = mode === 'create' ? createUserSchema : updateUserSchema
+  // Tipagem condicional baseada no mode
+  const isCreateMode = mode === 'create'
+  const schema = isCreateMode ? createUserSchema : updateUserSchema
+  
+  type FormData = typeof isCreateMode extends true ? CreateUserFormData : UpdateUserFormData
   
   const {
     register,
@@ -62,9 +72,9 @@ export default function UserForm({ mode, user, onSubmit, loading = false, error 
       funcao: user.funcao,
       role: user.role as 'admin' | 'user' | 'support',
       status: user.status
-    } : {
+    } as FormData : {
       status: 'active'
-    }
+    } as FormData
   })
 
   const isReadOnly = mode === 'view'
@@ -72,22 +82,39 @@ export default function UserForm({ mode, user, onSubmit, loading = false, error 
   const handleFormSubmit = async (data: FormData) => {
     if (isReadOnly) return
 
-    const submitData: CreateUserData | UpdateUserData = {
-      nome_completo: data.nome_completo,
-      login: data.login,
-      email: data.email || undefined,
-      cpf: data.cpf,
-      endereco: data.endereco,
-      funcao: data.funcao,
-      role: data.role,
-      status: data.status
+    if (mode === 'create') {
+      const submitData: CreateUserData = {
+        nome_completo: data.nome_completo,
+        login: data.login,
+        email: data.email || undefined,
+        cpf: data.cpf,
+        password: (data as CreateUserFormData).password,
+        endereco: data.endereco,
+        funcao: data.funcao,
+        role: data.role,
+        status: data.status
+      }
+      await onSubmit(submitData)
+    } else if (mode === 'edit') {
+      const updateData = data as UpdateUserFormData
+      const submitData: UpdateUserData = {
+        nome_completo: updateData.nome_completo,
+        login: updateData.login,
+        email: updateData.email || undefined,
+        cpf: updateData.cpf,
+        endereco: updateData.endereco,
+        funcao: updateData.funcao,
+        role: updateData.role,
+        status: updateData.status
+      }
+      
+      // Só incluir password se foi fornecida
+      if (updateData.password && updateData.password.trim() !== '') {
+        submitData.password = updateData.password
+      }
+      
+      await onSubmit(submitData)
     }
-
-    if (mode === 'create' || (mode === 'edit' && data.password)) {
-      (submitData as CreateUserData).password = data.password
-    }
-
-    await onSubmit(submitData)
   }
 
   return (

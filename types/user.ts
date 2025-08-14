@@ -6,9 +6,10 @@ export interface User {
     email?: string
     endereco: string
     funcao: string
+    job_function: string
     role: string
     status: 'active' | 'inactive'
-    senha: string
+    is_logged: boolean
     perfil: {
       modules: string[]
       permissions: string[]
@@ -16,40 +17,62 @@ export interface User {
     }
     created_at: string
     updated_at: string
+    last_login: string
     created_by: string
     updated_by: string
-    last_login?: string
-    is_logged?: boolean
   }
   
   export interface CreateUserData {
-    login: string
     nome_completo: string
-    cpf: string
+    login: string
     email?: string
-    address: string
+    cpf: string
+    password: string
+    endereco: string
     funcao: string
     role: string
     status: 'active' | 'inactive'
-    password: string
   }
   
   export interface UpdateUserData {
-    login?: string
     nome_completo?: string
-    cpf?: string
+    login?: string
     email?: string
-    address?: string
+    cpf?: string
+    password?: string
+    endereco?: string
     funcao?: string
     role?: string
     status?: 'active' | 'inactive'
-    password?: string
   }
   
   export interface UserSearchCriteria {
     login?: string
-    nome_completo?: string
     cpf?: string
-    role?: string
-    status?: 'active' | 'inactive'
+    nome_completo?: string
+  }
+  
+  // Tipos específicos para o formulário
+  export interface CreateUserFormData {
+    nome_completo: string
+    login: string
+    email?: string
+    cpf: string
+    password: string
+    endereco: string
+    funcao: string
+    role: 'admin' | 'user' | 'support'
+    status: 'active' | 'inactive'
+  }
+  
+  export interface UpdateUserFormData {
+    nome_completo: string
+    login: string
+    email?: string
+    cpf: string
+    password?: string
+    endereco: string
+    funcao: string
+    role: 'admin' | 'user' | 'support'
+    status: 'active' | 'inactive'
   }

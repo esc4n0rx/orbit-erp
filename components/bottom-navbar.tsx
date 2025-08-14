@@ -9,8 +9,8 @@ interface BottomNavbarProps {
     name: string
     initials: string
     environment: string
-    role: string
-    profile: {
+    role?: string
+    perfil?: {
       modules: string[]
       permissions: string[]
       restrictions: Record<string, any>
@@ -74,7 +74,7 @@ export default function BottomNavbar({ currentView, currentTime, environment, us
         </div>
 
         <div className="flex items-center space-x-4">
-          {user && (
+          {user && user.role && (
             <div className="flex items-center space-x-2">
               <span className="text-muted-foreground">Role:</span>
               <span className={`font-medium capitalize ${getRoleColor(user.role)}`}>{user.role}</span>

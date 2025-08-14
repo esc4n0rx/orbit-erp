@@ -7,7 +7,7 @@ import { MessageBar } from '@/components/ui/message-bar'
 import UserForm from './UserForm'
 import UserPermissionCheck from './UserPermissionCheck'
 import { createUser } from '@/lib/supabase/users'
-import type { User, CreateUserData } from '@/types/user'
+import type { User, CreateUserData, UpdateUserData} from '@/types/user'
 
 interface UserCreateViewProps {
   currentUser: User
@@ -20,7 +20,9 @@ export default function UserCreateView({ currentUser, environment, onSuccess }: 
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const handleCreateUser = async (userData: CreateUserData) => {
+  const handleCreateUser = async (data: CreateUserData | UpdateUserData) => {
+    const userData = data as CreateUserData
+
     setLoading(true)
     setError(null)
 
@@ -42,6 +44,7 @@ export default function UserCreateView({ currentUser, environment, onSuccess }: 
       setLoading(false)
     }
   }
+
 
   return (
     <UserPermissionCheck
