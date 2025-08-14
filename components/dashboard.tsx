@@ -41,7 +41,7 @@ interface DashboardProps {
     initials: string
     environment: string
     role?: string
-    profile?: {
+    perfil?: {
       modules: string[]
       permissions: string[]
       restrictions: Record<string, any>

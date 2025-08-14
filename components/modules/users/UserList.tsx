@@ -69,12 +69,12 @@ export default function UserList({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
-              <Label htmlFor="search-username">Nome de Usuário</Label>
+              <Label htmlFor="search-login">Nome de Usuário</Label>
               <Input
-                id="search-username"
+                id="search-login"
                 placeholder="Digite o nome de usuário"
-                value={searchCriteria.username || ''}
-                onChange={(e) => setSearchCriteria(prev => ({ ...prev, username: e.target.value }))}
+                value={searchCriteria.login || ''}
+                onChange={(e) => setSearchCriteria(prev => ({ ...prev, login: e.target.value }))}
               />
             </div>
             <div>
@@ -141,7 +141,7 @@ export default function UserList({
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                       <p className="font-medium">{user.nome_completo}</p>
-                      <p className="text-sm text-muted-foreground">@{user.username}</p>
+                      <p className="text-sm text-muted-foreground">@{user.login}</p>
                     </div>
                     <div>
                       <p className="text-sm">CPF: {user.cpf}</p>

@@ -15,7 +15,7 @@ export interface Address {
   country: string
 }
 
-export interface UserProfile {
+export interface Userperfil {
   permissions: string[]
   modules: string[]
   restrictions?: Record<string, any>
@@ -31,7 +31,7 @@ export interface User {
   endereco?: Address
   funcao?: string
   role: UserRole
-  perfil?: UserProfile
+  perfil?: Userperfil
   createdAt: string
   updatedAt: string
   lastLogin?: string

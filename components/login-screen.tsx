@@ -20,7 +20,7 @@ interface LoginScreenProps {
     initials: string
     environment: string
     role: string
-    profile: {
+    perfil: {
       modules: string[]
       permissions: string[]
       restrictions: Record<string, any>
@@ -115,7 +115,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         : username.slice(0, 2).toUpperCase()
 
       // Garantir que perfil existe
-      const userProfile = user.perfil || {
+      const userperfil = user.perfil || {
         modules: ['*'],
         permissions: ['*'],
         restrictions: {}
@@ -128,7 +128,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         initials,
         environment,
         role: user.role || 'user',
-        profile: userProfile
+        perfil: userperfil
       })
 
     } catch (err) {

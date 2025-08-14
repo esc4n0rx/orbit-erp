@@ -1,15 +1,15 @@
 export interface User {
     id: string
-    username: string
+    login: string
     nome_completo: string
     cpf: string
     email?: string
     endereco: string
-    job_function: string
+    funcao: string
     role: string
     status: 'active' | 'inactive'
-    password_hash: string
-    profile: {
+    senha: string
+    perfil: {
       modules: string[]
       permissions: string[]
       restrictions: Record<string, any>
@@ -23,31 +23,31 @@ export interface User {
   }
   
   export interface CreateUserData {
-    username: string
+    login: string
     nome_completo: string
     cpf: string
     email?: string
     address: string
-    job_function: string
+    funcao: string
     role: string
     status: 'active' | 'inactive'
     password: string
   }
   
   export interface UpdateUserData {
-    username?: string
+    login?: string
     nome_completo?: string
     cpf?: string
     email?: string
     address?: string
-    job_function?: string
+    funcao?: string
     role?: string
     status?: 'active' | 'inactive'
     password?: string
   }
   
   export interface UserSearchCriteria {
-    username?: string
+    login?: string
     nome_completo?: string
     cpf?: string
     role?: string

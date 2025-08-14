@@ -15,12 +15,12 @@ import type { User, CreateUserData, UpdateUserData } from '@/types/user'
 
 const createUserSchema = z.object({
   nome_completo: z.string().min(3, 'Nome completo deve ter pelo menos 3 caracteres'),
-  username: z.string().min(3, 'Nome de usuário deve ter pelo menos 3 caracteres').regex(/^[a-zA-Z0-9_]+$/, 'Nome de usuário deve conter apenas letras, números e underscore'),
+  login: z.string().min(3, 'Nome de usuário deve ter pelo menos 3 caracteres').regex(/^[a-zA-Z0-9_]+$/, 'Nome de usuário deve conter apenas letras, números e underscore'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   cpf: z.string().regex(/^\d{11}$/, 'CPF deve conter 11 dígitos'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
   endereco: z.string().min(5, 'Endereço deve ter pelo menos 5 caracteres'),
-  job_function: z.string().min(2, 'Função deve ter pelo menos 2 caracteres'),
+  funcao: z.string().min(2, 'Função deve ter pelo menos 2 caracteres'),
   role: z.enum(['admin', 'user', 'support']),
   status: z.enum(['active', 'inactive'])
 })
@@ -54,12 +54,12 @@ export default function UserForm({ mode, user, onSubmit, loading = false, error 
     resolver: zodResolver(schema),
     defaultValues: user ? {
       nome_completo: user.nome_completo,
-      username: user.username,
+      login: user.login,
       email: user.email || '',
       cpf: user.cpf,
       password: '',
       endereco: user.endereco,
-      job_function: user.job_function,
+      funcao: user.funcao,
       role: user.role as 'admin' | 'user' | 'support',
       status: user.status
     } : {
@@ -74,11 +74,11 @@ export default function UserForm({ mode, user, onSubmit, loading = false, error 
 
     const submitData: CreateUserData | UpdateUserData = {
       nome_completo: data.nome_completo,
-      username: data.username,
+      login: data.login,
       email: data.email || undefined,
       cpf: data.cpf,
       endereco: data.endereco,
-      job_function: data.job_function,
+      funcao: data.funcao,
       role: data.role,
       status: data.status
     }
@@ -161,15 +161,15 @@ export default function UserForm({ mode, user, onSubmit, loading = false, error 
               </div>
 
               <div>
-                <Label htmlFor="job_function">Função *</Label>
+                <Label htmlFor="funcao">Função *</Label>
                 <Input
-                  id="job_function"
-                  {...register('job_function')}
+                  id="funcao"
+                  {...register('funcao')}
                   disabled={isReadOnly}
-                  className={errors.job_function ? 'border-destructive' : ''}
+                  className={errors.funcao ? 'border-destructive' : ''}
                 />
-                {errors.job_function && (
-                  <p className="text-sm text-destructive mt-1">{errors.job_function.message}</p>
+                {errors.funcao && (
+                  <p className="text-sm text-destructive mt-1">{errors.funcao.message}</p>
                 )}
               </div>
             </CardContent>
@@ -182,15 +182,15 @@ export default function UserForm({ mode, user, onSubmit, loading = false, error 
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="username">Nome de Usuário *</Label>
+                <Label htmlFor="login">Nome de Usuário *</Label>
                 <Input
-                  id="username"
-                  {...register('username')}
+                  id="login"
+                  {...register('login')}
                   disabled={isReadOnly}
-                  className={errors.username ? 'border-destructive' : ''}
+                  className={errors.login ? 'border-destructive' : ''}
                 />
-                {errors.username && (
-                  <p className="text-sm text-destructive mt-1">{errors.username.message}</p>
+                {errors.login && (
+                  <p className="text-sm text-destructive mt-1">{errors.login.message}</p>
                 )}
               </div>
 
@@ -269,10 +269,10 @@ export default function UserForm({ mode, user, onSubmit, loading = false, error 
                   <Label>Perfil Atual</Label>
                   <div className="p-3 bg-muted rounded-md">
                     <p className="text-sm">
-                      <strong>Módulos:</strong> {user.profile.modules.join(', ')}
+                      <strong>Módulos:</strong> {user.perfil.modules.join(', ')}
                     </p>
                     <p className="text-sm">
-                      <strong>Permissões:</strong> {user.profile.permissions.join(', ')}
+                      <strong>Permissões:</strong> {user.perfil.permissions.join(', ')}
                     </p>
                   </div>
                 </div>

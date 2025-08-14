@@ -7,11 +7,11 @@ export async function createUser(userData: CreateUserData, environment: string, 
   try {
     const tableName = getTableName('users', environment)
     
-    // Verificar se username já existe
+    // Verificar se login já existe
     const { data: existingUser } = await supabase
       .from(tableName)
       .select('login')
-      .eq('login', userData.username)
+      .eq('login', userData.login)
       .single()
 
     if (existingUser) {
@@ -19,10 +19,10 @@ export async function createUser(userData: CreateUserData, environment: string, 
     }
 
     // Hash da senha
-    const password_hash = await bcrypt.hash(userData.password, 10)
+    const senha = await bcrypt.hash(userData.password, 10)
 
     // Perfil padrão
-    const defaultProfile = {
+    const defaultperfil = {
       modules: ['*'],
       permissions: ['*'],
       restrictions: {}
@@ -30,8 +30,8 @@ export async function createUser(userData: CreateUserData, environment: string, 
 
     const newUser = {
       ...userData,
-      password_hash,
-      profile: defaultProfile,
+      senha,
+      perfil: defaultperfil,
       status: userData.status || 'active',
       created_by: createdBy,
       updated_by: createdBy
@@ -67,7 +67,7 @@ export async function updateUser(id: string, userData: UpdateUserData, environme
 
     // Se senha foi fornecida, fazer hash
     if (userData.password) {
-      updateData.password_hash = await bcrypt.hash(userData.password, 10)
+      updateData.senha = await bcrypt.hash(userData.password, 10)
       delete updateData.password
     }
 
@@ -93,8 +93,8 @@ export async function searchUsers(criteria: UserSearchCriteria, environment: str
     const tableName = getTableName('users', environment)
     let query = supabase.from(tableName).select('*')
 
-    if (criteria.username) {
-      query = query.ilike('login', `%${criteria.username}%`)
+    if (criteria.login) {
+      query = query.ilike('login', `%${criteria.login}%`)
     }
     if (criteria.cpf) {
       query = query.eq('cpf', criteria.cpf)
@@ -135,13 +135,13 @@ export async function getUserById(id: string, environment: string): Promise<{ da
   }
 }
 
-export async function checkUsernameExists(username: string, environment: string, excludeId?: string): Promise<boolean> {
+export async function checkloginExists(login: string, environment: string, excludeId?: string): Promise<boolean> {
   try {
     const tableName = getTableName('users', environment)
     let query = supabase
       .from(tableName)
       .select('id')
-      .eq('login', username)
+      .eq('login', login)
 
     if (excludeId) {
       query = query.neq('id', excludeId)

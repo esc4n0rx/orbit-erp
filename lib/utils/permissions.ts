@@ -20,7 +20,7 @@ export function checkUserPermission(
 
   // Verificar permissões específicas
   if (requiredPermissions.length > 0) {
-    const userPermissions = user.profile.permissions
+    const userPermissions = user.perfil.permissions
     const hasAllPermissions = requiredPermissions.every(
       permission => userPermissions.includes('*') || userPermissions.includes(permission)
     )
