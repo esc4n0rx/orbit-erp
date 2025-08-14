@@ -8,49 +8,96 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, AlertCircle } from "lucide-react"
-import { useAuth } from "@/hooks/use-auth"
-import type { Environment } from "@/types/auth"
+import { MessageBar } from "@/components/ui/message-bar"
+import { supabase } from "@/lib/supabase"
+import { getTableName } from "@/lib/utils/environment"
+import bcrypt from 'bcryptjs'
 
-export default function LoginScreen() {
-  const { login, isLoading } = useAuth()
-  const [formData, setFormData] = useState({
-    login: "",
-    password: "",
-    environment: "" as Environment | ""
-  })
-  const [error, setError] = useState("")
+interface LoginScreenProps {
+  onLogin: (userData: { 
+    id: string
+    name: string
+    initials: string
+    environment: string
+    role: string
+    profile: {
+      modules: string[]
+      permissions: string[]
+      restrictions: Record<string, any>
+    }
+  }) => void
+}
+
+export default function LoginScreen({ onLogin }: LoginScreenProps) {
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [environment, setEnvironment] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
     
-    if (!formData.login || !formData.password || !formData.environment) {
+    if (!username || !password || !environment) {
       setError("Todos os campos são obrigatórios")
       return
     }
 
+    setLoading(true)
+    setError(null)
+
     try {
-      const response = await login({
-        login: formData.login,
-        password: formData.password,
-        environment: formData.environment
+      const tableName = getTableName('users', environment)
+      
+      // Buscar usuário no banco
+      const { data: user, error: fetchError } = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('username', username)
+        .eq('status', 'active')
+        .single()
+
+      if (fetchError || !user) {
+        setError("Usuário não encontrado ou inativo")
+        return
+      }
+
+      // Verificar senha
+      const passwordMatch = await bcrypt.compare(password, user.password_hash)
+      
+      if (!passwordMatch) {
+        setError("Senha incorreta")
+        return
+      }
+
+      // Gerar iniciais do nome completo
+      const initials = user.full_name
+        .split(" ")
+        .map((name: string) => name[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+
+      // Fazer login
+      onLogin({
+        id: user.id,
+        name: user.full_name,
+        initials: initials || username.slice(0, 2).toUpperCase(),
+        environment,
+        role: user.role,
+        profile: user.profile || {
+          modules: ['*'],
+          permissions: ['*'],
+          restrictions: {}
+        }
       })
 
-      if (!response.success) {
-        setError(response.error || "Erro ao fazer login")
-      }
-      // Se sucesso, o useAuth vai redirecionar automaticamente
     } catch (err) {
-      setError("Erro de conexão. Tente novamente.")
-      console.error("Erro no login:", err)
+      console.error('Erro no login:', err)
+      setError('Erro interno do servidor')
+    } finally {
+      setLoading(false)
     }
-  }
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (error) setError("") // Limpar erro quando usuário começar a digitar
   }
 
   return (
@@ -70,28 +117,26 @@ export default function LoginScreen() {
             <h2 className="text-xl font-medium text-center text-slate-700 dark:text-slate-200">Sign In</h2>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+            {error && (
+              <MessageBar variant="destructive" className="mb-4">
+                {error}
+              </MessageBar>
+            )}
 
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login" className="text-slate-600 dark:text-slate-300">
+                <Label htmlFor="username" className="text-slate-600 dark:text-slate-300">
                   User
                 </Label>
                 <Input
-                  id="login"
+                  id="username"
                   type="text"
                   placeholder="Enter your username"
-                  value={formData.login}
-                  onChange={(e) => handleInputChange("login", e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="h-11 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:bg-slate-700"
                   required
-                  disabled={isLoading}
-                  autoComplete="username"
+                  disabled={loading}
                 />
               </div>
 
@@ -103,12 +148,11 @@ export default function LoginScreen() {
                   id="password"
                   type="password"
                   placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="h-11 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:bg-slate-700"
                   required
-                  disabled={isLoading}
-                  autoComplete="current-password"
+                  disabled={loading}
                 />
               </div>
 
@@ -116,34 +160,14 @@ export default function LoginScreen() {
                 <Label htmlFor="environment" className="text-slate-600 dark:text-slate-300">
                   Environment
                 </Label>
-                <Select 
-                  value={formData.environment} 
-                  onValueChange={(value) => handleInputChange("environment", value)}
-                  required
-                  disabled={isLoading}
-                >
+                <Select value={environment} onValueChange={setEnvironment} required disabled={loading}>
                   <SelectTrigger className="h-11 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:bg-slate-700">
                     <SelectValue placeholder="Select environment" />
                   </SelectTrigger>
                   <SelectContent className="dark:bg-slate-800 dark:border-slate-600">
-                    <SelectItem value="production">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        Production
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="staging">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                        Staging
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="development">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        Development
-                      </div>
-                    </SelectItem>
+                    <SelectItem value="production">Production</SelectItem>
+                    <SelectItem value="staging">Staging</SelectItem>
+                    <SelectItem value="development">Development</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -151,15 +175,15 @@ export default function LoginScreen() {
               <Button 
                 type="submit" 
                 className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                disabled={isLoading}
+                disabled={loading}
               >
-                {isLoading ? (
+                {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing In...
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Entrando...
                   </>
                 ) : (
-                  "Log On"
+                  'Log On'
                 )}
               </Button>
 
@@ -167,7 +191,7 @@ export default function LoginScreen() {
                 <button
                   type="button"
                   className="text-sm text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-                  disabled={isLoading}
+                  disabled={loading}
                 >
                   Change Password
                 </button>
