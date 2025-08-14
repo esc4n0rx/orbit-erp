@@ -8,33 +8,49 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2, AlertCircle } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+import type { Environment } from "@/types/auth"
 
-interface LoginScreenProps {
-  onLogin: (userData: { name: string; initials: string; environment: string }) => void
-}
+export default function LoginScreen() {
+  const { login, isLoading } = useAuth()
+  const [formData, setFormData] = useState({
+    login: "",
+    password: "",
+    environment: "" as Environment | ""
+  })
+  const [error, setError] = useState("")
 
-export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [environment, setEnvironment] = useState("")
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (username && password && environment) {
-      // Generate initials from username
-      const initials = username
-        .split(" ")
-        .map((name) => name[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-
-      onLogin({
-        name: username,
-        initials: initials || username.slice(0, 2).toUpperCase(),
-        environment,
-      })
+    setError("")
+    
+    if (!formData.login || !formData.password || !formData.environment) {
+      setError("Todos os campos são obrigatórios")
+      return
     }
+
+    try {
+      const response = await login({
+        login: formData.login,
+        password: formData.password,
+        environment: formData.environment
+      })
+
+      if (!response.success) {
+        setError(response.error || "Erro ao fazer login")
+      }
+      // Se sucesso, o useAuth vai redirecionar automaticamente
+    } catch (err) {
+      setError("Erro de conexão. Tente novamente.")
+      console.error("Erro no login:", err)
+    }
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    if (error) setError("") // Limpar erro quando usuário começar a digitar
   }
 
   return (
@@ -55,18 +71,27 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-slate-600 dark:text-slate-300">
+                <Label htmlFor="login" className="text-slate-600 dark:text-slate-300">
                   User
                 </Label>
                 <Input
-                  id="username"
+                  id="login"
                   type="text"
                   placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={formData.login}
+                  onChange={(e) => handleInputChange("login", e.target.value)}
                   className="h-11 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:bg-slate-700"
                   required
+                  disabled={isLoading}
+                  autoComplete="username"
                 />
               </div>
 
@@ -78,10 +103,12 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                   id="password"
                   type="password"
                   placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange("password", e.target.value)}
                   className="h-11 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:bg-slate-700"
                   required
+                  disabled={isLoading}
+                  autoComplete="current-password"
                 />
               </div>
 
@@ -89,26 +116,58 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 <Label htmlFor="environment" className="text-slate-600 dark:text-slate-300">
                   Environment
                 </Label>
-                <Select value={environment} onValueChange={setEnvironment} required>
+                <Select 
+                  value={formData.environment} 
+                  onValueChange={(value) => handleInputChange("environment", value)}
+                  required
+                  disabled={isLoading}
+                >
                   <SelectTrigger className="h-11 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:bg-slate-700">
                     <SelectValue placeholder="Select environment" />
                   </SelectTrigger>
                   <SelectContent className="dark:bg-slate-800 dark:border-slate-600">
-                    <SelectItem value="production">Production</SelectItem>
-                    <SelectItem value="staging">Staging</SelectItem>
-                    <SelectItem value="development">Development</SelectItem>
+                    <SelectItem value="production">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        Production
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="staging">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        Staging
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="development">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        Development
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium">
-                Log On
+              <Button 
+                type="submit" 
+                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  "Log On"
+                )}
               </Button>
 
               <div className="text-center">
                 <button
                   type="button"
                   className="text-sm text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                  disabled={isLoading}
                 >
                   Change Password
                 </button>

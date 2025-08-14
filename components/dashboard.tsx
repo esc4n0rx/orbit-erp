@@ -20,6 +20,7 @@ import {
   FileText,
   Calculator,
   Briefcase,
+  User,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,15 +29,7 @@ import ViewCard from "@/components/view-card"
 import ViewRenderer from "@/components/view-renderer"
 import BottomNavbar from "@/components/bottom-navbar"
 import { Badge } from "@/components/ui/badge"
-
-interface DashboardProps {
-  user: {
-    name: string
-    initials: string
-    environment: string
-  }
-  onLogout: () => void
-}
+import { useAuth } from "@/hooks/use-auth"
 
 interface Tab {
   id: string
@@ -96,7 +89,8 @@ const quickAccessViews = [
   { id: "production-planning", title: "Produção", icon: Briefcase },
 ]
 
-export default function Dashboard({ user, onLogout }: DashboardProps) {
+export default function Dashboard() {
+  const { user, environment, logout } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [tabs, setTabs] = useState<Tab[]>([{ id: "home", title: "Home", viewId: "home", isActive: true }])
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -181,12 +175,37 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     setTheme(theme === "dark" ? "light" : "dark")
   }
 
+  const handleLogout = async () => {
+    await logout()
+  }
+
   const activeTab = tabs.find((tab) => tab.isActive)
   const currentView = activeTab?.viewId || "home"
 
   // Prevent hydration mismatch
-  if (!mounted) {
+  if (!mounted || !user || !environment) {
     return null
+  }
+
+  // Generate user initials
+  const userInitials = user.nomeCompleto
+    .split(" ")
+    .map((name) => name[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
+
+  const getEnvironmentColor = (env: string) => {
+    switch (env.toLowerCase()) {
+      case "production":
+        return "bg-green-50 text-green-700 dark:bg-green-900 dark:text-green-300"
+      case "staging":
+        return "bg-yellow-50 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
+      case "development":
+        return "bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+      default:
+        return "bg-gray-50 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+    }
   }
 
   return (
@@ -238,14 +257,18 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={onLogout}
+              onClick={handleLogout}
               className="text-white hover:bg-slate-700 dark:hover:bg-slate-800"
+              title={`Logout - ${user.nomeCompleto}`}
             >
               <LogOut className="h-4 w-4" />
             </Button>
 
-            <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
-              {user.initials}
+            <div 
+              className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium cursor-pointer"
+              title={`${user.nomeCompleto} (${user.login}) - ${user.role}`}
+            >
+              {userInitials}
             </div>
           </div>
         </div>
@@ -300,8 +323,11 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           </div>
 
           <div className="flex items-center space-x-2">
+            <Badge variant="outline" className={`text-xs ${getEnvironmentColor(environment)} border-current`}>
+              {environment}
+            </Badge>
             <Badge variant="outline" className="text-xs bg-background">
-              {user.environment}
+              {user.role}
             </Badge>
             <span className="text-xs text-muted-foreground">{currentTime.toLocaleTimeString()}</span>
           </div>
@@ -353,6 +379,28 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       <main className="pt-36 pb-16">
         {currentView === "home" ? (
           <div className="p-6">
+            {/* Welcome Section */}
+            <section className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl font-bold">
+                  {userInitials}
+                </div>
+                <div>
+                  <h1 className="text-2xl font-semibold text-foreground">
+                    Bem-vindo, {user.nomeCompleto.split(' ')[0]}!
+                  </h1>
+                  <p className="text-muted-foreground">
+                    {user.funcao} • {user.role} • Ambiente: {environment}
+                  </p>
+                  {user.lastLogin && (
+                    <p className="text-sm text-muted-foreground">
+                      Último acesso: {new Date(user.lastLogin).toLocaleString('pt-BR')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+
             {/* Recent Views */}
             <section className="mb-12">
               <h2 className="text-2xl font-semibold mb-6 text-foreground flex items-center gap-2">
@@ -399,7 +447,12 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       </main>
 
       {/* Bottom Navbar */}
-      <BottomNavbar currentView={activeTab?.title || "Home"} currentTime={currentTime} environment={user.environment} />
+      <BottomNavbar 
+        currentView={activeTab?.title || "Home"} 
+        currentTime={currentTime} 
+        environment={environment}
+        user={user}
+      />
     </div>
   )
 }
