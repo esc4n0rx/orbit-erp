@@ -110,7 +110,7 @@ export default function UserEditView({ currentUser, environment, onSuccess }: Us
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-3">
                 <User2 className="h-8 w-8 text-orange-600" />
-                {step === 'search' ? 'Editar Usuário' : `Editando: ${selectedUser?.full_name}`}
+                {step === 'search' ? 'Editar Usuário' : `Editando: ${selectedUser?.nome_completo}`}
               </h1>
               <p className="text-muted-foreground mt-2">
                 {step === 'search' 

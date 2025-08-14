@@ -1,46 +1,55 @@
 export interface User {
     id: string
-    full_name: string
     username: string
-    email?: string
+    nome_completo: string
     cpf: string
-    password_hash: string
-    status: 'active' | 'inactive'
-    address: string
+    email?: string
+    endereco: string
     job_function: string
-    role: 'master' | 'admin' | 'user' | 'support'
-    profile: UserProfile
-    environment: string
+    role: string
+    status: 'active' | 'inactive'
+    password_hash: string
+    profile: {
+      modules: string[]
+      permissions: string[]
+      restrictions: Record<string, any>
+    }
     created_at: string
     updated_at: string
     created_by: string
     updated_by: string
-  }
-  
-  export interface UserProfile {
-    modules: string[]
-    permissions: string[]
-    restrictions: Record<string, any>
+    last_login?: string
+    is_logged?: boolean
   }
   
   export interface CreateUserData {
-    full_name: string
     username: string
-    email?: string
+    nome_completo: string
     cpf: string
-    password: string
+    email?: string
     address: string
     job_function: string
-    role: 'admin' | 'user' | 'support'
-    status?: 'active' | 'inactive'
+    role: string
+    status: 'active' | 'inactive'
+    password: string
   }
   
-  export interface UpdateUserData extends Partial<Omit<CreateUserData, 'password'>> {
+  export interface UpdateUserData {
+    username?: string
+    nome_completo?: string
+    cpf?: string
+    email?: string
+    address?: string
+    job_function?: string
+    role?: string
+    status?: 'active' | 'inactive'
     password?: string
   }
   
   export interface UserSearchCriteria {
     username?: string
+    nome_completo?: string
     cpf?: string
-    full_name?: string
+    role?: string
+    status?: 'active' | 'inactive'
   }

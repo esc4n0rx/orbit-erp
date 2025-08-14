@@ -26,7 +26,7 @@ export async function loginUser(credentials: LoginCredentials): Promise<AuthResp
       }
     }
     
-    // Verificar senha
+    // Verificar senha usando o campo 'senha' do banco
     const isPasswordValid = await bcrypt.compare(password, userData.senha)
     
     if (!isPasswordValid) {

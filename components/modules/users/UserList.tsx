@@ -91,8 +91,8 @@ export default function UserList({
               <Input
                 id="search-name"
                 placeholder="Digite o nome completo"
-                value={searchCriteria.full_name || ''}
-                onChange={(e) => setSearchCriteria(prev => ({ ...prev, full_name: e.target.value }))}
+                value={searchCriteria.nome_completo || ''}
+                onChange={(e) => setSearchCriteria(prev => ({ ...prev, nome_completo: e.target.value }))}
               />
             </div>
           </div>
@@ -140,7 +140,7 @@ export default function UserList({
                 >
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="font-medium">{user.full_name}</p>
+                      <p className="font-medium">{user.nome_completo}</p>
                       <p className="text-sm text-muted-foreground">@{user.username}</p>
                     </div>
                     <div>

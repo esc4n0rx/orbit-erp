@@ -14,12 +14,12 @@ import { Loader2 } from 'lucide-react'
 import type { User, CreateUserData, UpdateUserData } from '@/types/user'
 
 const createUserSchema = z.object({
-  full_name: z.string().min(3, 'Nome completo deve ter pelo menos 3 caracteres'),
+  nome_completo: z.string().min(3, 'Nome completo deve ter pelo menos 3 caracteres'),
   username: z.string().min(3, 'Nome de usuário deve ter pelo menos 3 caracteres').regex(/^[a-zA-Z0-9_]+$/, 'Nome de usuário deve conter apenas letras, números e underscore'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   cpf: z.string().regex(/^\d{11}$/, 'CPF deve conter 11 dígitos'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
-  address: z.string().min(5, 'Endereço deve ter pelo menos 5 caracteres'),
+  endereco: z.string().min(5, 'Endereço deve ter pelo menos 5 caracteres'),
   job_function: z.string().min(2, 'Função deve ter pelo menos 2 caracteres'),
   role: z.enum(['admin', 'user', 'support']),
   status: z.enum(['active', 'inactive'])
@@ -53,12 +53,12 @@ export default function UserForm({ mode, user, onSubmit, loading = false, error 
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: user ? {
-      full_name: user.full_name,
+      nome_completo: user.nome_completo,
       username: user.username,
       email: user.email || '',
       cpf: user.cpf,
       password: '',
-      address: user.address,
+      endereco: user.endereco,
       job_function: user.job_function,
       role: user.role as 'admin' | 'user' | 'support',
       status: user.status
@@ -73,11 +73,11 @@ export default function UserForm({ mode, user, onSubmit, loading = false, error 
     if (isReadOnly) return
 
     const submitData: CreateUserData | UpdateUserData = {
-      full_name: data.full_name,
+      nome_completo: data.nome_completo,
       username: data.username,
       email: data.email || undefined,
       cpf: data.cpf,
-      address: data.address,
+      endereco: data.endereco,
       job_function: data.job_function,
       role: data.role,
       status: data.status
@@ -107,15 +107,15 @@ export default function UserForm({ mode, user, onSubmit, loading = false, error 
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="full_name">Nome Completo *</Label>
+                <Label htmlFor="nome_completo">Nome Completo *</Label>
                 <Input
-                  id="full_name"
-                  {...register('full_name')}
+                  id="nome_completo"
+                  {...register('nome_completo')}
                   disabled={isReadOnly}
-                  className={errors.full_name ? 'border-destructive' : ''}
+                  className={errors.nome_completo ? 'border-destructive' : ''}
                 />
-                {errors.full_name && (
-                  <p className="text-sm text-destructive mt-1">{errors.full_name.message}</p>
+                {errors.nome_completo && (
+                  <p className="text-sm text-destructive mt-1">{errors.nome_completo.message}</p>
                 )}
               </div>
 
@@ -148,15 +148,15 @@ export default function UserForm({ mode, user, onSubmit, loading = false, error 
               </div>
 
               <div>
-                <Label htmlFor="address">Endereço *</Label>
+                <Label htmlFor="endereco">Endereço *</Label>
                 <Input
-                  id="address"
-                  {...register('address')}
+                  id="endereco"
+                  {...register('endereco')}
                   disabled={isReadOnly}
-                  className={errors.address ? 'border-destructive' : ''}
+                  className={errors.endereco ? 'border-destructive' : ''}
                 />
-                {errors.address && (
-                  <p className="text-sm text-destructive mt-1">{errors.address.message}</p>
+                {errors.endereco && (
+                  <p className="text-sm text-destructive mt-1">{errors.endereco.message}</p>
                 )}
               </div>
 

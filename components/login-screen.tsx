@@ -49,52 +49,91 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     try {
       const tableName = getTableName('users', environment)
       
-      // Buscar usuário no banco
+      console.log('Tentando login:', { login: username, environment, tableName })
+      
+      // Buscar usuário no banco - usando 'login' que é o campo correto
       const { data: user, error: fetchError } = await supabase
         .from(tableName)
         .select('*')
-        .eq('username', username)
+        .eq('login', username)
         .eq('status', 'active')
         .single()
 
-      if (fetchError || !user) {
+      console.log('Resultado da busca:', { user, fetchError })
+
+      if (fetchError) {
+        console.error('Erro na busca:', fetchError)
+        if (fetchError.code === 'PGRST116') {
+          setError("Usuário não encontrado ou inativo")
+        } else {
+          setError("Erro ao buscar usuário: " + fetchError.message)
+        }
+        return
+      }
+
+      if (!user) {
         setError("Usuário não encontrado ou inativo")
         return
       }
 
-      // Verificar senha
-      const passwordMatch = await bcrypt.compare(password, user.password_hash)
+      // Verificar se o campo senha existe
+      if (!user.senha) {
+        setError("Usuário sem senha cadastrada. Entre em contato com o administrador.")
+        return
+      }
+
+      // Verificar senha - usando o campo 'senha' do banco
+      const passwordMatch = await bcrypt.compare(password, user.senha)
       
       if (!passwordMatch) {
         setError("Senha incorreta")
         return
       }
 
+      // Atualizar status de logged no banco
+      try {
+        await supabase
+          .from(tableName)
+          .update({ 
+            is_logged: true, 
+            last_login: new Date().toISOString() 
+          })
+          .eq('id', user.id)
+      } catch (updateError) {
+        console.warn('Erro ao atualizar status de login:', updateError)
+        // Não bloquear o login por causa disso
+      }
+
       // Gerar iniciais do nome completo
-      const initials = user.full_name
-        .split(" ")
-        .map((name: string) => name[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+      const initials = user.nome_completo
+        ? user.nome_completo
+            .split(" ")
+            .map((name: string) => name[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2)
+        : username.slice(0, 2).toUpperCase()
+
+      // Garantir que perfil existe
+      const userProfile = user.perfil || {
+        modules: ['*'],
+        permissions: ['*'],
+        restrictions: {}
+      }
 
       // Fazer login
       onLogin({
         id: user.id,
-        name: user.full_name,
-        initials: initials || username.slice(0, 2).toUpperCase(),
+        name: user.nome_completo || user.login,
+        initials,
         environment,
-        role: user.role,
-        profile: user.profile || {
-          modules: ['*'],
-          permissions: ['*'],
-          restrictions: {}
-        }
+        role: user.role || 'user',
+        profile: userProfile
       })
 
     } catch (err) {
       console.error('Erro no login:', err)
-      setError('Erro interno do servidor')
+      setError('Erro interno do servidor: ' + (err as Error).message)
     } finally {
       setLoading(false)
     }
@@ -131,7 +170,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 <Input
                   id="username"
                   type="text"
-                  placeholder="Enter your username"
+                  placeholder="Enter your login"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="h-11 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:bg-slate-700"
@@ -199,6 +238,8 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             </form>
           </CardContent>
         </Card>
+
+        {/* Debug Info (remover em produção) */}
       </div>
     </div>
   )

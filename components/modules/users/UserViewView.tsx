@@ -77,7 +77,7 @@ export default function UserViewView({ currentUser, environment }: UserViewViewP
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-3">
                 <Eye className="h-8 w-8 text-green-600" />
-                {step === 'search' ? 'Visualizar Usuário' : `Visualizando: ${selectedUser?.full_name}`}
+                {step === 'search' ? 'Visualizar Usuário' : `Visualizando: ${selectedUser?.nome_completo}`}
               </h1>
               <p className="text-muted-foreground mt-2">
                 {step === 'search' 

@@ -10,8 +10,8 @@ export async function createUser(userData: CreateUserData, environment: string, 
     // Verificar se username já existe
     const { data: existingUser } = await supabase
       .from(tableName)
-      .select('username')
-      .eq('username', userData.username)
+      .select('login')
+      .eq('login', userData.username)
       .single()
 
     if (existingUser) {
@@ -33,7 +33,6 @@ export async function createUser(userData: CreateUserData, environment: string, 
       password_hash,
       profile: defaultProfile,
       status: userData.status || 'active',
-      environment,
       created_by: createdBy,
       updated_by: createdBy
     }
@@ -95,13 +94,13 @@ export async function searchUsers(criteria: UserSearchCriteria, environment: str
     let query = supabase.from(tableName).select('*')
 
     if (criteria.username) {
-      query = query.ilike('username', `%${criteria.username}%`)
+      query = query.ilike('login', `%${criteria.username}%`)
     }
     if (criteria.cpf) {
       query = query.eq('cpf', criteria.cpf)
     }
-    if (criteria.full_name) {
-      query = query.ilike('full_name', `%${criteria.full_name}%`)
+    if (criteria.nome_completo) {
+      query = query.ilike('nome_completo', `%${criteria.nome_completo}%`)
     }
 
     const { data, error } = await query.order('created_at', { ascending: false })
@@ -142,7 +141,7 @@ export async function checkUsernameExists(username: string, environment: string,
     let query = supabase
       .from(tableName)
       .select('id')
-      .eq('username', username)
+      .eq('login', username)
 
     if (excludeId) {
       query = query.neq('id', excludeId)

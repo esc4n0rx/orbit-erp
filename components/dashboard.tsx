@@ -523,7 +523,12 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
      </main>
 
      {/* Bottom Navbar */}
-     <BottomNavbar currentView={activeTab?.title || "Home"} currentTime={currentTime} environment={user.environment} />
+     <BottomNavbar 
+       currentView={activeTab?.title || "Home"} 
+       currentTime={currentTime} 
+       environment={user.environment}
+       user={user}
+     />
    </div>
  )
 }

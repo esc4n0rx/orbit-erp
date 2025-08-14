@@ -1,12 +1,21 @@
 "use client"
 
-import type { User, Environment } from "@/types/auth"
-
 interface BottomNavbarProps {
   currentView: string
   currentTime: Date
-  environment: Environment
-  user: User
+  environment: string
+  user?: {
+    id: string
+    name: string
+    initials: string
+    environment: string
+    role: string
+    profile: {
+      modules: string[]
+      permissions: string[]
+      restrictions: Record<string, any>
+    }
+  }
 }
 
 export default function BottomNavbar({ currentView, currentTime, environment, user }: BottomNavbarProps) {
@@ -21,7 +30,7 @@ export default function BottomNavbar({ currentView, currentTime, environment, us
     })
   }
 
-  const getEnvironmentColor = (env: Environment) => {
+  const getEnvironmentColor = (env: string) => {
     switch (env.toLowerCase()) {
       case "production":
         return "text-green-600 dark:text-green-400"
@@ -57,16 +66,20 @@ export default function BottomNavbar({ currentView, currentTime, environment, us
         <div className="flex items-center space-x-6">
           <span className="font-medium text-foreground">View: {currentView}</span>
           <span className="text-muted-foreground">{formatTime(currentTime)}</span>
-          <span className="text-muted-foreground">
-            User: <span className="font-medium text-foreground">{user.login}</span>
-          </span>
+          {user && (
+            <span className="text-muted-foreground">
+              User: <span className="font-medium text-foreground">{user.name}</span>
+            </span>
+          )}
         </div>
 
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-muted-foreground">Role:</span>
-            <span className={`font-medium capitalize ${getRoleColor(user.role)}`}>{user.role}</span>
-          </div>
+          {user && (
+            <div className="flex items-center space-x-2">
+              <span className="text-muted-foreground">Role:</span>
+              <span className={`font-medium capitalize ${getRoleColor(user.role)}`}>{user.role}</span>
+            </div>
+          )}
           <div className="flex items-center space-x-2">
             <span className="text-muted-foreground">Environment:</span>
             <span className={`font-medium capitalize ${getEnvironmentColor(environment)}`}>{environment}</span>
