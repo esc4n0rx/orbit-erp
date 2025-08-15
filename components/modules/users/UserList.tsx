@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react'
-import { Search, Eye, Edit, User } from 'lucide-react'
+import { Search, Eye, Edit, User, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,6 +17,7 @@ interface UserListProps {
   onSearch: (criteria: UserSearchCriteria) => void
   onSelectUser: (user: UserType, action: 'view' | 'edit') => void
   showActions?: boolean
+  mode?: 'default' | 'permission' // Novo prop para identificar o modo
 }
 
 export default function UserList({ 
@@ -25,7 +26,8 @@ export default function UserList({
   error, 
   onSearch, 
   onSelectUser, 
-  showActions = true 
+  showActions = true,
+  mode = 'default'
 }: UserListProps) {
   const [searchCriteria, setSearchCriteria] = useState<UserSearchCriteria>({})
 
@@ -54,6 +56,12 @@ export default function UserList({
     
     const roleInfo = roleMap[role as keyof typeof roleMap] || { text: role, variant: 'outline' as const }
     return <Badge variant={roleInfo.variant}>{roleInfo.text}</Badge>
+  }
+
+  const handleUserClick = (user: UserType) => {
+    if (mode === 'permission') {
+      onSelectUser(user, 'edit') // No modo permission, sempre usar 'edit'
+    }
   }
 
   return (
@@ -118,7 +126,15 @@ export default function UserList({
       {/* Lista de Usuários */}
       <Card>
         <CardHeader>
-          <CardTitle>Resultados da Busca</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Resultados da Busca</span>
+            {mode === 'permission' && (
+              <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                <Settings className="h-3 w-3 mr-1" />
+                Clique no usuário para gerenciar permissões
+              </Badge>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -136,11 +152,21 @@ export default function UserList({
               {users.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${
+                    mode === 'permission' 
+                      ? 'cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300 dark:hover:border-purple-700' 
+                      : 'hover:bg-muted/50'
+                  }`}
+                  onClick={() => handleUserClick(user)}
                 >
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="font-medium">{user.nome_completo}</p>
+                      <p className="font-medium flex items-center gap-2">
+                        {user.nome_completo}
+                        {mode === 'permission' && (
+                          <Settings className="h-3 w-3 text-purple-600" />
+                        )}
+                      </p>
                       <p className="text-sm text-muted-foreground">@{user.login}</p>
                     </div>
                     <div>
@@ -157,22 +183,38 @@ export default function UserList({
                     </div>
                   </div>
                   
-                  {showActions && (
+                  {/* Botões de ação - apenas no modo padrão */}
+                  {showActions && mode === 'default' && (
                     <div className="flex gap-2 ml-4">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => onSelectUser(user, 'view')}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onSelectUser(user, 'view')
+                        }}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => onSelectUser(user, 'edit')}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onSelectUser(user, 'edit')
+                        }}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
+                    </div>
+                  )}
+
+                  {/* Indicador visual no modo permission */}
+                  {mode === 'permission' && (
+                    <div className="ml-4">
+                      <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                        <Settings className="h-3 w-3 text-purple-600" />
+                      </div>
                     </div>
                   )}
                 </div>

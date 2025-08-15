@@ -15,6 +15,8 @@ import {
   Star,
   Clock,
   Users,
+  ChevronRight,
+  Folder,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,12 +26,14 @@ import ViewRenderer from "@/components/view-renderer"
 import BottomNavbar from "@/components/bottom-navbar"
 import { Badge } from "@/components/ui/badge"
 import { MessageBar } from "@/components/ui/message-bar"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   getUserAccessibleViews, 
   getUserAccessibleModules,
   getRecentViews,
   getSuggestedViews,
-  recordViewAccess
+  recordViewAccess,
+  getViewsByModule
 } from "@/lib/supabase/modules"
 import { checkUserPermission } from "@/lib/utils/permissions"
 import type { View, Module } from "@/types/module"
@@ -65,6 +69,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
   const [userModules, setUserModules] = useState<Module[]>([])
   const [recentViews, setRecentViews] = useState<any[]>([])
   const [suggestedViews, setSuggestedViews] = useState<any[]>([])
+  const [expandedModules, setExpandedModules] = useState<string[]>([])
+  const [moduleViews, setModuleViews] = useState<Record<string, View[]>>({})
   const [loading, setLoading] = useState(true)
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -113,6 +119,21 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
     loadData()
   }, [user])
+
+  // Carregar views de um módulo quando expandido
+  const loadModuleViews = async (moduleId: string) => {
+    if (moduleViews[moduleId]) return // Já carregadas
+
+    try {
+      const { data: views } = await getViewsByModule(moduleId, user.role || '')
+      setModuleViews(prev => ({
+        ...prev,
+        [moduleId]: views || []
+      }))
+    } catch (error) {
+      console.error('Erro ao carregar views do módulo:', error)
+    }
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -221,21 +242,22 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     setTheme(theme === "dark" ? "light" : "dark")
   }
 
+  const toggleModuleExpansion = (moduleId: string) => {
+    setExpandedModules(prev => {
+      if (prev.includes(moduleId)) {
+        return prev.filter(id => id !== moduleId)
+      } else {
+        loadModuleViews(moduleId) // Carregar views quando expandir
+        return [...prev, moduleId]
+      }
+    })
+  }
+
   const activeTab = tabs.find((tab) => tab.isActive)
   const currentView = activeTab?.viewId || "home"
 
   // Filtrar views para quick access (primeiras 6)
   const quickAccessViews = userViews.slice(0, 6)
-
-  // Agrupar views por módulo
-  const viewsByModule = userViews.reduce((acc, view) => {
-    const moduleId = view.module_id
-    if (!acc[moduleId]) {
-      acc[moduleId] = []
-    }
-    acc[moduleId].push(view)
-    return acc
-  }, {} as Record<string, View[]>)
 
   if (!mounted || loading) {
     return (
@@ -424,13 +446,13 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
      {/* Main Content with top padding for fixed header */}
      <main className={`pt-36 pb-16 ${permissionError ? 'pt-52' : ''}`}>
        {currentView === "home" ? (
-         <div className="p-6">
+         <div className="p-6 space-y-8">
            {/* Recent Views */}
            {recentViews.length > 0 && (
-             <section className="mb-12">
+             <section>
                <h2 className="text-2xl font-semibold mb-6 text-foreground flex items-center gap-2">
-                 <Clock className="h-6 w-6" />
-                 Minhas Views Recentes
+                 <Clock className="h-6 w-6 text-blue-600" />
+                 Views Recentes
                </h2>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {recentViews.map((view) => (
@@ -447,54 +469,62 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
              </section>
            )}
 
-           {/* Views por Módulo */}
+           {/* Módulos */}
            {userModules.length > 0 && (
-             <>
-               {userModules.map(module => {
-                 const moduleViews = viewsByModule[module.id] || []
-                 if (moduleViews.length === 0) return null
-
-                 return (
-                   <section key={module.id} className="mb-12">
-                     <h2 className="text-2xl font-semibold mb-6 text-foreground flex items-center gap-2">
-                       <Users className="h-6 w-6" />
-                       {module.name}
-                     </h2>
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                       {moduleViews.map((view) => (
-                         <ViewCard
-                           key={view.alias}
-                           title={view.name}
-                           description={view.description}
-                           metadata={`Alias: ${view.alias}`}
-                           onClick={() => handleViewSelect(view.alias, view.name)}
-                           variant="suggested"
-                         />
-                       ))}
-                     </div>
-                   </section>
-                 )
-               })}
-             </>
-           )}
-
-           {/* Suggested Views */}
-           {suggestedViews.length > 0 && (
              <section>
                <h2 className="text-2xl font-semibold mb-6 text-foreground flex items-center gap-2">
-                 <Star className="h-6 w-6" />
-                 Views Disponíveis
+                 <Folder className="h-6 w-6 text-purple-600" />
+                 Módulos do Sistema
                </h2>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {suggestedViews.map((view) => (
-                   <ViewCard
-                     key={view.id}
-                     title={view.title}
-                     description={view.description}
-                     metadata={view.category}
-                     onClick={() => handleViewSelect(view.id, view.title)}
-                     variant="suggested"
-                   />
+                 {userModules.map((module) => (
+                   <Card key={module.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                     <CardHeader className="pb-3">
+                       <div 
+                         className="flex items-center justify-between"
+                         onClick={() => toggleModuleExpansion(module.id)}
+                       >
+                         <CardTitle className="text-lg font-medium flex items-center gap-2">
+                           <Folder className="h-5 w-5 text-purple-600" />
+                           {module.name}
+                         </CardTitle>
+                         <ChevronRight 
+                           className={`h-4 w-4 transition-transform ${
+                             expandedModules.includes(module.id) ? 'rotate-90' : ''
+                           }`} 
+                         />
+                       </div>
+                     </CardHeader>
+                     <CardContent>
+                       <p className="text-muted-foreground text-sm mb-3">{module.description}</p>
+                       <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                         {module.alias}
+                       </Badge>
+                       
+                       {/* Views do Módulo */}
+                       {expandedModules.includes(module.id) && (
+                         <div className="mt-4 space-y-2">
+                           <h4 className="text-sm font-medium text-foreground">Views Disponíveis:</h4>
+                           {moduleViews[module.id] ? (
+                             <div className="space-y-1">
+                               {moduleViews[module.id].map((view) => (
+                                 <button
+                                   key={view.alias}
+                                   onClick={() => handleViewSelect(view.alias, view.name)}
+                                   className="w-full text-left p-2 rounded hover:bg-muted transition-colors text-sm"
+                                 >
+                                   <div className="font-medium">{view.name}</div>
+                                   <div className="text-muted-foreground text-xs">{view.alias}</div>
+                                 </button>
+                               ))}
+                             </div>
+                           ) : (
+                             <div className="text-sm text-muted-foreground">Carregando...</div>
+                           )}
+                         </div>
+                       )}
+                     </CardContent>
+                   </Card>
                  ))}
                </div>
              </section>

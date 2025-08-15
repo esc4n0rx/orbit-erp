@@ -86,6 +86,26 @@ export async function getModuleViews(moduleAlias: string): Promise<{ data: View[
   }
 }
 
+export async function getViewsByModule(moduleId: string, userRole: string): Promise<{ data: View[] | null; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from(VIEWS_TABLE)
+      .select('*')
+      .eq('module_id', moduleId)
+      .eq('status', 'active')
+      .contains('required_roles', [userRole])
+      .order('alias', { ascending: true })
+
+    if (error) {
+      return { data: null, error: error.message }
+    }
+
+    return { data, error: null }
+  } catch (error) {
+    return { data: null, error: 'Erro interno do servidor' }
+  }
+}
+
 export async function getViewByAlias(alias: string): Promise<{ data: View | null; error: string | null }> {
   try {
     const { data, error } = await supabase
@@ -278,6 +298,45 @@ export async function getAllViews(): Promise<{ data: View[] | null; error: strin
     }
 
     return { data, error: null }
+  } catch (error) {
+    return { data: null, error: 'Erro interno do servidor' }
+  }
+}
+
+export async function getAllModulesAndViews(): Promise<{ 
+  data: { modules: Module[], views: View[] } | null; 
+  error: string | null 
+}> {
+  try {
+    // Buscar todos os módulos
+    const { data: modules, error: modulesError } = await supabase
+      .from(MODULES_TABLE)
+      .select('*')
+      .eq('status', 'active')
+      .order('name', { ascending: true })
+
+    if (modulesError) {
+      return { data: null, error: modulesError.message }
+    }
+
+    // Buscar todas as views
+    const { data: views, error: viewsError } = await supabase
+      .from(VIEWS_TABLE)
+      .select('*')
+      .eq('status', 'active')
+      .order('name', { ascending: true })
+
+    if (viewsError) {
+      return { data: null, error: viewsError.message }
+    }
+
+    return { 
+      data: { 
+        modules: modules || [], 
+        views: views || [] 
+      }, 
+      error: null 
+    }
   } catch (error) {
     return { data: null, error: 'Erro interno do servidor' }
   }

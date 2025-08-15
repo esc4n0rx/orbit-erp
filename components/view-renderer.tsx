@@ -10,6 +10,7 @@ import { BarChart3, DollarSign, Package, TrendingUp, AlertCircle, ExternalLink }
 import UserCreateView from "@/components/modules/users/UserCreateView"
 import UserEditView from "@/components/modules/users/UserEditView"
 import UserViewView from "@/components/modules/users/UserViewView"
+import UserPermissionView from "@/components/modules/users/UserPermissionView"
 import { recordViewAccess } from "@/lib/supabase/modules"
 
 interface ViewRendererProps {
@@ -48,6 +49,13 @@ export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRe
       case "usr003":
         return (
           <UserViewView
+            currentUser={currentUser}
+          />
+        )
+
+      case "usr004":
+        return (
+          <UserPermissionView
             currentUser={currentUser}
           />
         )
