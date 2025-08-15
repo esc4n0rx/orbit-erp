@@ -11,6 +11,13 @@ import UserCreateView from "@/components/modules/users/UserCreateView"
 import UserEditView from "@/components/modules/users/UserEditView"
 import UserViewView from "@/components/modules/users/UserViewView"
 import UserPermissionView from "@/components/modules/users/UserPermissionView"
+
+// Importar as views de materiais
+import CategoryCreateView from "@/components/modules/materials/CategoryCreateView"
+import CategoryEditView from "@/components/modules/materials/CategoryEditView"
+import DepositCreateView from "@/components/modules/materials/DepositCreateView"
+import DepositEditView from "@/components/modules/materials/DepositEditView"
+
 import { recordViewAccess } from "@/lib/supabase/modules"
 
 interface ViewRendererProps {
@@ -57,6 +64,39 @@ export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRe
         return (
           <UserPermissionView
             currentUser={currentUser}
+          />
+        )
+
+      // Views do módulo de materiais
+      case "mcat01":
+        return (
+          <CategoryCreateView
+            currentUser={currentUser}
+            onSuccess={() => onOpenView?.('mcat02', 'Editar Categoria')}
+          />
+        )
+
+      case "mcat02":
+        return (
+          <CategoryEditView
+            currentUser={currentUser}
+            onSuccess={() => onOpenView?.('mcat01', 'Criar Categoria')}
+          />
+        )
+
+      case "mdep01":
+        return (
+          <DepositCreateView
+            currentUser={currentUser}
+            onSuccess={() => onOpenView?.('mdep02', 'Editar Depósito')}
+          />
+        )
+
+      case "mdep02":
+        return (
+          <DepositEditView
+            currentUser={currentUser}
+            onSuccess={() => onOpenView?.('mdep01', 'Criar Depósito')}
           />
         )
 
