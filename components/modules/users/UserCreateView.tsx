@@ -11,11 +11,10 @@ import type { User, CreateUserData, UpdateUserData} from '@/types/user'
 
 interface UserCreateViewProps {
   currentUser: User
-  environment: string
   onSuccess?: () => void
 }
 
-export default function UserCreateView({ currentUser, environment, onSuccess }: UserCreateViewProps) {
+export default function UserCreateView({ currentUser, onSuccess }: UserCreateViewProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -27,7 +26,7 @@ export default function UserCreateView({ currentUser, environment, onSuccess }: 
     setError(null)
 
     try {
-      const { data, error: createError } = await createUser(userData, environment, currentUser.id)
+      const { data, error: createError } = await createUser(userData, currentUser.id)
       
       if (createError) {
         setError(createError)
@@ -44,7 +43,6 @@ export default function UserCreateView({ currentUser, environment, onSuccess }: 
       setLoading(false)
     }
   }
-
 
   return (
     <UserPermissionCheck

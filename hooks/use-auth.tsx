@@ -1,30 +1,26 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import type { AuthContextType, User, LoginCredentials, AuthResponse, Environment } from '@/types/auth'
+import type { AuthContextType, User, LoginCredentials, AuthResponse } from '@/types/auth'
 import { loginUser, logoutUser } from '@/lib/auth'
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [environment, setEnvironment] = useState<Environment | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   // Carregar dados do localStorage na inicialização
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedUser = localStorage.getItem('orbit_user')
-      const savedEnvironment = localStorage.getItem('orbit_environment')
       
-      if (savedUser && savedEnvironment) {
+      if (savedUser) {
         try {
           setUser(JSON.parse(savedUser))
-          setEnvironment(savedEnvironment as Environment)
         } catch (error) {
           console.error('Erro ao carregar dados salvos:', error)
           localStorage.removeItem('orbit_user')
-          localStorage.removeItem('orbit_environment')
         }
       }
     }
@@ -38,11 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (response.success && response.user) {
         setUser(response.user)
-        setEnvironment(credentials.environment)
         
         // Salvar no localStorage
         localStorage.setItem('orbit_user', JSON.stringify(response.user))
-        localStorage.setItem('orbit_environment', credentials.environment)
         localStorage.setItem('orbit_token', response.token || '')
       }
       
@@ -53,16 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async (): Promise<void> => {
-    if (user && environment) {
-      await logoutUser(user.id, environment)
+    if (user) {
+      await logoutUser(user.id)
     }
     
     setUser(null)
-    setEnvironment(null)
     
     // Limpar localStorage
     localStorage.removeItem('orbit_user')
-    localStorage.removeItem('orbit_environment')
     localStorage.removeItem('orbit_token')
   }
 
@@ -76,7 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthContextType = {
     user,
-    environment,
     login,
     logout,
     isLoading,
@@ -99,5 +90,3 @@ export function useAuth(): AuthContextType {
   
   return context
 }
-
-

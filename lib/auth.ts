@@ -1,19 +1,20 @@
 import bcrypt from 'bcryptjs'
-import { EnvironmentSupabaseClient } from './supabase'
-import type { LoginCredentials, User, AuthResponse, Environment } from '@/types/auth'
+import { supabase } from './supabase'
+import type { LoginCredentials, User, AuthResponse } from '@/types/auth'
 
 /**
  * Realiza login do usuário
  */
 export async function loginUser(credentials: LoginCredentials): Promise<AuthResponse> {
   try {
-    const { login, password, environment } = credentials
+    const { login, password } = credentials
     
-    // Criar cliente para o ambiente específico
-    const client = new EnvironmentSupabaseClient(environment)
+    // Usar sempre a tabela de development
+    const tableName = 'orbit_erp_users_dev'
     
     // Buscar usuário pelo login
-    const { data: userData, error: fetchError } = await client.users
+    const { data: userData, error: fetchError } = await supabase
+      .from(tableName)
       .select('*')
       .eq('login', login)
       .eq('status', 'active')
@@ -37,7 +38,8 @@ export async function loginUser(credentials: LoginCredentials): Promise<AuthResp
     }
     
     // Atualizar status de logged e last_login
-    const { error: updateError } = await client.users
+    const { error: updateError } = await supabase
+      .from(tableName)
       .update({ 
         is_logged: true, 
         last_login: new Date().toISOString() 
@@ -70,7 +72,7 @@ export async function loginUser(credentials: LoginCredentials): Promise<AuthResp
     return {
       success: true,
       user,
-      token: generateToken(user, environment)
+      token: generateToken(user)
     }
     
   } catch (error) {
@@ -85,11 +87,12 @@ export async function loginUser(credentials: LoginCredentials): Promise<AuthResp
 /**
  * Realiza logout do usuário
  */
-export async function logoutUser(userId: string, environment: Environment): Promise<void> {
+export async function logoutUser(userId: string): Promise<void> {
   try {
-    const client = new EnvironmentSupabaseClient(environment)
+    const tableName = 'orbit_erp_users_dev'
     
-    await client.users
+    await supabase
+      .from(tableName)
       .update({ is_logged: false })
       .eq('id', userId)
       
@@ -127,12 +130,11 @@ export function hasPermission(user: User, permission: string): boolean {
 /**
  * Gera token simples para sessão (implementar JWT real em produção)
  */
-function generateToken(user: User, environment: Environment): string {
+function generateToken(user: User): string {
   const payload = {
     userId: user.id,
     login: user.login,
     role: user.role,
-    environment,
     timestamp: Date.now()
   }
   

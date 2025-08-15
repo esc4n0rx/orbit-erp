@@ -1,5 +1,3 @@
-export type Environment = 'production' | 'staging' | 'development'
-
 export type UserRole = 'master' | 'admin' | 'manager' | 'user' | 'viewer'
 
 export type UserStatus = 'active' | 'inactive' | 'suspended'
@@ -15,7 +13,7 @@ export interface Address {
   country: string
 }
 
-export interface Userperfil {
+export interface UserPerfil {
   permissions: string[]
   modules: string[]
   restrictions?: Record<string, any>
@@ -31,7 +29,7 @@ export interface User {
   endereco?: Address
   funcao?: string
   role: UserRole
-  perfil?: Userperfil
+  perfil?: UserPerfil
   createdAt: string
   updatedAt: string
   lastLogin?: string
@@ -42,7 +40,6 @@ export interface User {
 export interface LoginCredentials {
   login: string
   password: string
-  environment: Environment
 }
 
 export interface AuthResponse {
@@ -54,7 +51,6 @@ export interface AuthResponse {
 
 export interface AuthContextType {
   user: User | null
-  environment: Environment | null
   login: (credentials: LoginCredentials) => Promise<AuthResponse>
   logout: () => Promise<void>
   isLoading: boolean

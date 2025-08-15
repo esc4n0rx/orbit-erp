@@ -13,11 +13,10 @@ import type { User, UserSearchCriteria, UpdateUserData } from '@/types/user'
 
 interface UserEditViewProps {
   currentUser: User
-  environment: string
   onSuccess?: () => void
 }
 
-export default function UserEditView({ currentUser, environment, onSuccess }: UserEditViewProps) {
+export default function UserEditView({ currentUser, onSuccess }: UserEditViewProps) {
   const [step, setStep] = useState<'search' | 'edit'>('search')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [users, setUsers] = useState<User[]>([])
@@ -32,7 +31,7 @@ export default function UserEditView({ currentUser, environment, onSuccess }: Us
     setSearchError(null)
 
     try {
-      const { data, error } = await searchUsers(criteria, environment)
+      const { data, error } = await searchUsers(criteria)
       
       if (error) {
         setSearchError(error)
@@ -62,7 +61,7 @@ export default function UserEditView({ currentUser, environment, onSuccess }: Us
     setUpdateError(null)
 
     try {
-      const { data, error } = await updateUser(selectedUser.id, userData, environment, currentUser.id)
+      const { data, error } = await updateUser(selectedUser.id, userData, currentUser.id)
       
       if (error) {
         setUpdateError(error)

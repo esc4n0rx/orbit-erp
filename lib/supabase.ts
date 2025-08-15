@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Environment } from '@/types/auth'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -7,37 +6,33 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 /**
- * Retorna o nome da tabela de usuários baseado no ambiente
+ * Retorna o nome da tabela baseado no tipo
+ * Sempre usa o sufixo _dev (development)
  */
-export function getUserTableName(environment: Environment): string {
-  const tableMap = {
-    production: 'orbit_erp_users_prod',
-    staging: 'orbit_erp_users_stg',
-    development: 'orbit_erp_users_dev'
-  }
-  
-  return tableMap[environment]
+export function getTableName(tableType: string): string {
+  return `orbit_erp_${tableType}_dev`
 }
 
 /**
- * Cliente Supabase configurado para um ambiente específico
+ * Cliente Supabase configurado para development
  */
-export class EnvironmentSupabaseClient {
-  private tableName: string
-  
-  constructor(private environment: Environment) {
-    this.tableName = getUserTableName(environment)
-  }
-  
+export class SupabaseClient {
   get users() {
-    return supabase.from(this.tableName)
+    return supabase.from('orbit_erp_users_dev')
   }
   
-  getTableName() {
-    return this.tableName
+  get modules() {
+    return supabase.from('orbit_erp_modules_dev')
   }
   
-  getEnvironment() {
-    return this.environment
+  get views() {
+    return supabase.from('orbit_erp_views_dev')
+  }
+  
+  get viewAccessHistory() {
+    return supabase.from('orbit_erp_view_access_history_dev')
   }
 }
+
+// Instância padrão
+export const dbClient = new SupabaseClient()

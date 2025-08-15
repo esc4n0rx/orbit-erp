@@ -12,10 +12,9 @@ import type { User, UserSearchCriteria } from '@/types/user'
 
 interface UserViewViewProps {
   currentUser: User
-  environment: string
 }
 
-export default function UserViewView({ currentUser, environment }: UserViewViewProps) {
+export default function UserViewView({ currentUser }: UserViewViewProps) {
   const [step, setStep] = useState<'search' | 'view'>('search')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [users, setUsers] = useState<User[]>([])
@@ -27,7 +26,7 @@ export default function UserViewView({ currentUser, environment }: UserViewViewP
     setSearchError(null)
 
     try {
-      const { data, error } = await searchUsers(criteria, environment)
+      const { data, error } = await searchUsers(criteria)
       
       if (error) {
         setSearchError(error)

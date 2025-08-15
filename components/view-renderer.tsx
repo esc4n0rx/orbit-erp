@@ -15,17 +15,16 @@ import { recordViewAccess } from "@/lib/supabase/modules"
 interface ViewRendererProps {
   viewId: string
   currentUser?: any
-  environment?: string
   onOpenView?: (viewId: string, title: string) => void
 }
 
-export default function ViewRenderer({ viewId, currentUser, environment, onOpenView }: ViewRendererProps) {
+export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRendererProps) {
   // Registrar acesso quando a view é renderizada
   useEffect(() => {
-    if (currentUser && environment && viewId !== 'home') {
-      recordViewAccess(currentUser.id, viewId, environment)
+    if (currentUser && viewId !== 'home') {
+      recordViewAccess(currentUser.id, viewId)
     }
-  }, [currentUser, environment, viewId])
+  }, [currentUser, viewId])
 
   const renderView = () => {
     // Views do módulo de usuários (dinâmicas do banco)
@@ -34,7 +33,6 @@ export default function ViewRenderer({ viewId, currentUser, environment, onOpenV
         return (
           <UserCreateView
             currentUser={currentUser}
-            environment={environment || 'development'}
             onSuccess={() => onOpenView?.('usr002', 'Editar Usuário')}
           />
         )
@@ -43,7 +41,6 @@ export default function ViewRenderer({ viewId, currentUser, environment, onOpenV
         return (
           <UserEditView
             currentUser={currentUser}
-            environment={environment || 'development'}
             onSuccess={() => onOpenView?.('usr003', 'Visualizar Usuário')}
           />
         )
@@ -52,7 +49,6 @@ export default function ViewRenderer({ viewId, currentUser, environment, onOpenV
         return (
           <UserViewView
             currentUser={currentUser}
-            environment={environment || 'development'}
           />
         )
 

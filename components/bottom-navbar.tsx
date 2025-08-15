@@ -3,12 +3,10 @@
 interface BottomNavbarProps {
   currentView: string
   currentTime: Date
-  environment: string
   user?: {
     id: string
     name: string
     initials: string
-    environment: string
     role?: string
     perfil?: {
       modules: string[]
@@ -18,7 +16,7 @@ interface BottomNavbarProps {
   }
 }
 
-export default function BottomNavbar({ currentView, currentTime, environment, user }: BottomNavbarProps) {
+export default function BottomNavbar({ currentView, currentTime, user }: BottomNavbarProps) {
   const formatTime = (date: Date) => {
     return date.toLocaleString("pt-BR", {
       day: "2-digit",
@@ -28,19 +26,6 @@ export default function BottomNavbar({ currentView, currentTime, environment, us
       minute: "2-digit",
       second: "2-digit",
     })
-  }
-
-  const getEnvironmentColor = (env: string) => {
-    switch (env.toLowerCase()) {
-      case "production":
-        return "text-green-600 dark:text-green-400"
-      case "staging":
-        return "text-yellow-600 dark:text-yellow-400"
-      case "development":
-        return "text-blue-600 dark:text-blue-400"
-      default:
-        return "text-gray-600 dark:text-gray-400"
-    }
   }
 
   const getRoleColor = (role: string) => {
@@ -82,7 +67,7 @@ export default function BottomNavbar({ currentView, currentTime, environment, us
           )}
           <div className="flex items-center space-x-2">
             <span className="text-muted-foreground">Environment:</span>
-            <span className={`font-medium capitalize ${getEnvironmentColor(environment)}`}>{environment}</span>
+            <span className="font-medium capitalize text-blue-600 dark:text-blue-400">development</span>
           </div>
         </div>
       </div>

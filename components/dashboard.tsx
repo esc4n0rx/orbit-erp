@@ -39,7 +39,6 @@ interface DashboardProps {
     id: string
     name: string
     initials: string
-    environment: string
     role?: string
     perfil?: {
       modules: string[]
@@ -90,19 +89,19 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       
       try {
         // Carregar views acessíveis ao usuário
-        const { data: views } = await getUserAccessibleViews(user.role, user.environment)
+        const { data: views } = await getUserAccessibleViews(user.role)
         setUserViews(views || [])
 
         // Carregar módulos acessíveis ao usuário
-        const { data: modules } = await getUserAccessibleModules(user.role, user.environment)
+        const { data: modules } = await getUserAccessibleModules(user.role)
         setUserModules(modules || [])
 
         // Carregar views recentes
-        const { data: recent } = await getRecentViews(user.id, user.environment)
+        const { data: recent } = await getRecentViews(user.id)
         setRecentViews(recent || [])
 
         // Carregar views sugeridas
-        const { data: suggested } = await getSuggestedViews(user.role, user.environment)
+        const { data: suggested } = await getSuggestedViews(user.role)
         setSuggestedViews(suggested || [])
 
       } catch (error) {
@@ -163,7 +162,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       }
 
       // Registrar acesso à view
-      await recordViewAccess(user.id, viewId, user.environment)
+      await recordViewAccess(user.id, viewId)
     }
 
     const existingTab = tabs.find((tab) => tab.viewId === viewId)
@@ -369,7 +368,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
           <div className="flex items-center space-x-2">
             <Badge variant="outline" className="text-xs bg-background">
-              {user.environment}
+              development
             </Badge>
             {user.role && (
               <Badge variant="secondary" className="text-xs">
@@ -516,7 +515,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
          <ViewRenderer 
            viewId={currentView} 
            currentUser={user as any}
-           environment={user.environment}
            onOpenView={handleViewSelect} 
          />
        )}
@@ -526,7 +524,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
      <BottomNavbar 
        currentView={activeTab?.title || "Home"} 
        currentTime={currentTime} 
-       environment={user.environment}
        user={user}
      />
    </div>

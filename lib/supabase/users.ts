@@ -1,15 +1,14 @@
 import { supabase } from '../supabase'
 import type { User, CreateUserData, UpdateUserData, UserSearchCriteria } from '@/types/user'
-import { getTableName } from '@/lib/utils/environment'
 import bcrypt from 'bcryptjs'
 
-export async function createUser(userData: CreateUserData, environment: string, createdBy: string): Promise<{ data: User | null; error: string | null }> {
+const TABLE_NAME = 'orbit_erp_users_dev'
+
+export async function createUser(userData: CreateUserData, createdBy: string): Promise<{ data: User | null; error: string | null }> {
   try {
-    const tableName = getTableName('users', environment)
-    
     // Verificar se login já existe
     const { data: existingUser } = await supabase
-      .from(tableName)
+      .from(TABLE_NAME)
       .select('login')
       .eq('login', userData.login)
       .single()
@@ -22,7 +21,7 @@ export async function createUser(userData: CreateUserData, environment: string, 
     const senha = await bcrypt.hash(userData.password, 10)
 
     // Perfil padrão
-    const defaultperfil = {
+    const defaultPerfil = {
       modules: ['*'],
       permissions: ['*'],
       restrictions: {}
@@ -31,7 +30,7 @@ export async function createUser(userData: CreateUserData, environment: string, 
     const newUser = {
       ...userData,
       senha,
-      perfil: defaultperfil,
+      perfil: defaultPerfil,
       status: userData.status || 'active',
       created_by: createdBy,
       updated_by: createdBy
@@ -40,7 +39,7 @@ export async function createUser(userData: CreateUserData, environment: string, 
     delete (newUser as any).password
 
     const { data, error } = await supabase
-      .from(tableName)
+      .from(TABLE_NAME)
       .insert(newUser)
       .select()
       .single()
@@ -55,10 +54,8 @@ export async function createUser(userData: CreateUserData, environment: string, 
   }
 }
 
-export async function updateUser(id: string, userData: UpdateUserData, environment: string, updatedBy: string): Promise<{ data: User | null; error: string | null }> {
+export async function updateUser(id: string, userData: UpdateUserData, updatedBy: string): Promise<{ data: User | null; error: string | null }> {
   try {
-    const tableName = getTableName('users', environment)
-    
     const updateData: any = {
       ...userData,
       updated_by: updatedBy,
@@ -72,7 +69,7 @@ export async function updateUser(id: string, userData: UpdateUserData, environme
     }
 
     const { data, error } = await supabase
-      .from(tableName)
+      .from(TABLE_NAME)
       .update(updateData)
       .eq('id', id)
       .select()
@@ -88,10 +85,9 @@ export async function updateUser(id: string, userData: UpdateUserData, environme
   }
 }
 
-export async function searchUsers(criteria: UserSearchCriteria, environment: string): Promise<{ data: User[] | null; error: string | null }> {
+export async function searchUsers(criteria: UserSearchCriteria): Promise<{ data: User[] | null; error: string | null }> {
   try {
-    const tableName = getTableName('users', environment)
-    let query = supabase.from(tableName).select('*')
+    let query = supabase.from(TABLE_NAME).select('*')
 
     if (criteria.login) {
       query = query.ilike('login', `%${criteria.login}%`)
@@ -115,12 +111,10 @@ export async function searchUsers(criteria: UserSearchCriteria, environment: str
   }
 }
 
-export async function getUserById(id: string, environment: string): Promise<{ data: User | null; error: string | null }> {
+export async function getUserById(id: string): Promise<{ data: User | null; error: string | null }> {
   try {
-    const tableName = getTableName('users', environment)
-    
     const { data, error } = await supabase
-      .from(tableName)
+      .from(TABLE_NAME)
       .select('*')
       .eq('id', id)
       .single()
@@ -135,11 +129,10 @@ export async function getUserById(id: string, environment: string): Promise<{ da
   }
 }
 
-export async function checkloginExists(login: string, environment: string, excludeId?: string): Promise<boolean> {
+export async function checkLoginExists(login: string, excludeId?: string): Promise<boolean> {
   try {
-    const tableName = getTableName('users', environment)
     let query = supabase
-      .from(tableName)
+      .from(TABLE_NAME)
       .select('id')
       .eq('login', login)
 

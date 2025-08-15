@@ -11,7 +11,6 @@ export default function Home() {
     id: string
     name: string
     initials: string
-    environment: string
     role?: string
     perfil?: {
       modules: string[]
@@ -24,7 +23,6 @@ export default function Home() {
     id: string
     name: string
     initials: string
-    environment: string
     role?: string
     perfil?: {
       modules: string[]

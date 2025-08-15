@@ -1,14 +1,20 @@
-export function getEnvironmentSuffix(environment: string): string {
-    const envMap: Record<string, string> = {
-      'development': 'dev',
-      'production': 'prod',
-      'staging': 'stg'
-    }
-    
-    return envMap[environment] || 'dev'
-  }
-  
-  export function getTableName(tableName: string, environment: string): string {
-    const suffix = getEnvironmentSuffix(environment)
-    return `orbit_erp_${tableName}_${suffix}`
-  }
+/**
+ * Sempre retorna 'dev' como sufixo padrão
+ */
+export function getEnvironmentSuffix(): string {
+  return 'dev'
+}
+
+/**
+ * Retorna o nome da tabela com sufixo _dev
+ */
+export function getTableName(tableName: string): string {
+  return `orbit_erp_${tableName}_dev`
+}
+
+/**
+ * Retorna sempre 'development' como ambiente padrão
+ */
+export function getCurrentEnvironment(): string {
+  return 'development'
+}

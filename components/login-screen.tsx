@@ -6,11 +6,9 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { MessageBar } from "@/components/ui/message-bar"
 import { supabase } from "@/lib/supabase"
-import { getTableName } from "@/lib/utils/environment"
 import bcrypt from 'bcryptjs'
 
 interface LoginScreenProps {
@@ -18,7 +16,6 @@ interface LoginScreenProps {
     id: string
     name: string
     initials: string
-    environment: string
     role: string
     perfil: {
       modules: string[]
@@ -31,14 +28,13 @@ interface LoginScreenProps {
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
-  const [environment, setEnvironment] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!username || !password || !environment) {
+    if (!username || !password) {
       setError("Todos os campos são obrigatórios")
       return
     }
@@ -47,9 +43,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     setError(null)
 
     try {
-      const tableName = getTableName('users', environment)
+      const tableName = 'orbit_erp_users_dev'
       
-      console.log('Tentando login:', { login: username, environment, tableName })
+      console.log('Tentando login:', { login: username, tableName })
       
       // Buscar usuário no banco - usando 'login' que é o campo correto
       const { data: user, error: fetchError } = await supabase
@@ -121,12 +117,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         restrictions: {}
       }
 
-      // Fazer login
       onLogin({
         id: user.id,
         name: user.nome_completo || user.login,
         initials,
-        environment,
         role: user.role || 'user',
         perfil: userperfil
       })
@@ -148,12 +142,12 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             O
           </div>
           <h1 className="text-3xl font-light text-slate-700 dark:text-slate-200">Orbit</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">Enterprise Resource Planning</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">ERP Empresarial</p>
         </div>
 
         <Card className="shadow-lg border-0 dark:bg-slate-800 dark:border-slate-700">
           <CardHeader className="space-y-1 pb-4">
-            <h2 className="text-xl font-medium text-center text-slate-700 dark:text-slate-200">Sign In</h2>
+            <h2 className="text-xl font-medium text-center text-slate-700 dark:text-slate-200">Login</h2>
           </CardHeader>
           <CardContent>
             {error && (
@@ -170,7 +164,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 <Input
                   id="username"
                   type="text"
-                  placeholder="Enter your login"
+                  placeholder="Digite seu Usuario"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="h-11 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:bg-slate-700"
@@ -186,29 +180,13 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder="Digite sua Senha"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-11 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:bg-slate-700"
                   required
                   disabled={loading}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="environment" className="text-slate-600 dark:text-slate-300">
-                  Environment
-                </Label>
-                <Select value={environment} onValueChange={setEnvironment} required disabled={loading}>
-                  <SelectTrigger className="h-11 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:bg-slate-700">
-                    <SelectValue placeholder="Select environment" />
-                  </SelectTrigger>
-                  <SelectContent className="dark:bg-slate-800 dark:border-slate-600">
-                    <SelectItem value="production">Production</SelectItem>
-                    <SelectItem value="staging">Staging</SelectItem>
-                    <SelectItem value="development">Development</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <Button 
@@ -222,7 +200,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                     Entrando...
                   </>
                 ) : (
-                  'Log On'
+                  'Login'
                 )}
               </Button>
 
@@ -232,14 +210,12 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                   className="text-sm text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                   disabled={loading}
                 >
-                  Change Password
+                  Alterar Senha
                 </button>
               </div>
             </form>
           </CardContent>
         </Card>
-
-        {/* Debug Info (remover em produção) */}
       </div>
     </div>
   )
