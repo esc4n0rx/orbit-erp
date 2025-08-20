@@ -1,50 +1,61 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { ReactNode } from 'react'
+import { Shield, AlertCircle } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { MessageBar } from '@/components/ui/message-bar'
-import { checkUserPermission } from '@/lib/utils/permissions'
-import type { User } from '@/types/user'
+import { User } from '@/types/user'
 
 interface MaterialPermissionCheckProps {
-  user: User | null
-  requiredRoles: string[]
-  requiredPermissions?: string[]
-  children: React.ReactNode
-  fallback?: React.ReactNode
+  children: ReactNode
+  currentUser: User
+  requiredPermission: 'create' | 'read' | 'update' | 'delete'
 }
 
-export default function MaterialPermissionCheck({
-  user,
-  requiredRoles,
-  requiredPermissions = [],
-  children,
-  fallback
+export default function MaterialPermissionCheck({ 
+  children, 
+  currentUser, 
+  requiredPermission 
 }: MaterialPermissionCheckProps) {
-  const [permissionCheck, setPermissionCheck] = useState<{
-    hasAccess: boolean
-    reason?: string
-  }>({ hasAccess: false })
-
-  useEffect(() => {
-    const result = checkUserPermission(user, requiredRoles, requiredPermissions)
-    setPermissionCheck(result)
-  }, [user, requiredRoles, requiredPermissions])
-
-  if (!permissionCheck.hasAccess) {
-    if (fallback) {
-      return <>{fallback}</>
+  
+  // Verificação básica de permissões baseada no role
+  const hasPermission = () => {
+    const userRole = currentUser.role?.toLowerCase()
+    
+    // Master e admin têm todas as permissões
+    if (userRole === 'master' || userRole === 'admin') {
+      return true
     }
+    
+    // Support pode ler e criar
+    if (userRole === 'support') {
+      return ['read', 'create'].includes(requiredPermission)
+    }
+    
+    // Viewer só pode ler
+    if (userRole === 'viewer') {
+      return requiredPermission === 'read'
+    }
+    
+    return false
+  }
 
+  if (!hasPermission()) {
     return (
-      <div className="p-6">
-        <MessageBar
-          variant="destructive"
-          title="Acesso Negado"
-          closable={false}
-        >
-          {permissionCheck.reason || 'Você não tem permissão para acessar esta funcionalidade.'}
-        </MessageBar>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <Shield className="h-5 w-5" />
+            Acesso Negado
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MessageBar variant="destructive" title="Permissão Insuficiente">
+            Você não tem permissão para acessar esta funcionalidade. 
+            Entre em contato com o administrador do sistema.
+          </MessageBar>
+        </CardContent>
+      </Card>
     )
   }
 

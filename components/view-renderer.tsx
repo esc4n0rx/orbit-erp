@@ -12,11 +12,16 @@ import UserEditView from "@/components/modules/users/UserEditView"
 import UserViewView from "@/components/modules/users/UserViewView"
 import UserPermissionView from "@/components/modules/users/UserPermissionView"
 
-// Importar as views de materiais
+// Importar as views de materiais existentes
 import CategoryCreateView from "@/components/modules/materials/CategoryCreateView"
 import CategoryEditView from "@/components/modules/materials/CategoryEditView"
 import DepositCreateView from "@/components/modules/materials/DepositCreateView"
 import DepositEditView from "@/components/modules/materials/DepositEditView"
+
+// Importar as novas views de materiais
+import MaterialCreateView from "@/components/modules/materials/MaterialCreateView"
+import MaterialEditView from "@/components/modules/materials/MaterialEditView"
+import MaterialDetailView from "@/components/modules/materials/MaterialDetailView"
 
 import { recordViewAccess } from "@/lib/supabase/modules"
 
@@ -67,7 +72,7 @@ export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRe
           />
         )
 
-      // Views do módulo de materiais
+      // Views do módulo de materiais - Categorias e Depósitos
       case "mcat01":
         return (
           <CategoryCreateView
@@ -97,6 +102,31 @@ export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRe
           <DepositEditView
             currentUser={currentUser}
             onSuccess={() => onOpenView?.('mdep01', 'Criar Depósito')}
+          />
+        )
+
+      // NOVAS VIEWS DE MATERIAIS
+      case "cr001":
+        return (
+          <MaterialCreateView
+            currentUser={currentUser}
+            onSuccess={() => onOpenView?.('cr002', 'Editar Material')}
+          />
+        )
+
+      case "cr002":
+        return (
+          <MaterialEditView
+            currentUser={currentUser}
+            onSuccess={() => onOpenView?.('cr003', 'Visualizar Material')}
+          />
+        )
+
+      case "cr003":
+        return (
+          <MaterialDetailView
+            currentUser={currentUser}
+            onSuccess={() => onOpenView?.('cr001', 'Criar Material')}
           />
         )
 
