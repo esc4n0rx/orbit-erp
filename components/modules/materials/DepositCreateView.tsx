@@ -47,9 +47,8 @@ export default function DepositCreateView({ currentUser, onSuccess }: DepositCre
 
   return (
     <MaterialPermissionCheck
-      user={currentUser}
-      requiredRoles={['master', 'admin', 'support']}
-      requiredPermissions={['materials.deposits.create']}
+      currentUser={currentUser}
+      requiredPermission="create"
     >
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">

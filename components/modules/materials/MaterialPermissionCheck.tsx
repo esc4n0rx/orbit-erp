@@ -8,7 +8,7 @@ import { User } from '@/types/user'
 
 interface MaterialPermissionCheckProps {
   children: ReactNode
-  currentUser: User
+  currentUser: User | null | undefined
   requiredPermission: 'create' | 'read' | 'update' | 'delete'
 }
 
@@ -18,9 +18,33 @@ export default function MaterialPermissionCheck({
   requiredPermission 
 }: MaterialPermissionCheckProps) {
   
+  // Verificação de segurança para currentUser
+  if (!currentUser) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <Shield className="h-5 w-5" />
+            Usuário Não Autenticado
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MessageBar variant="destructive" title="Acesso Negado">
+            Usuário não autenticado. Faça login para acessar esta funcionalidade.
+          </MessageBar>
+        </CardContent>
+      </Card>
+    )
+  }
+
   // Verificação básica de permissões baseada no role
   const hasPermission = () => {
-    const userRole = currentUser.role?.toLowerCase()
+    // Verificação adicional de segurança para role
+    if (!currentUser.role) {
+      return false
+    }
+
+    const userRole = currentUser.role.toLowerCase()
     
     // Master e admin têm todas as permissões
     if (userRole === 'master' || userRole === 'admin') {

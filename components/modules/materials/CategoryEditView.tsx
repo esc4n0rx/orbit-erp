@@ -95,9 +95,8 @@ export default function CategoryEditView({ currentUser, onSuccess }: CategoryEdi
 
   return (
     <MaterialPermissionCheck
-      user={currentUser}
-      requiredRoles={['master', 'admin', 'support']}
-      requiredPermissions={['materials.categories.edit']}
+      currentUser={currentUser}
+      requiredPermission="update"
     >
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
