@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import LoginScreen from "@/components/login-screen"
-import Dashboard from "@/components/dashboard"
+import {Dashboard} from "@/components/dashboard"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export default function Home() {

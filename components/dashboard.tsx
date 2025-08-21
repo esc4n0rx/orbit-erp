@@ -1,57 +1,33 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import {
-  Search,
-  Moon,
-  Sun,
-  LogOut,
-  Plus,
-  X,
-  Home,
-  Settings,
-  Star,
-  Clock,
-  Users,
-  ChevronRight,
-  Folder,
-} from "lucide-react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useTheme } from "next-themes"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { MessageBar } from "@/components/ui/message-bar"
 import ViewCard from "@/components/view-card"
 import ViewRenderer from "@/components/view-renderer"
 import BottomNavbar from "@/components/bottom-navbar"
-import { Badge } from "@/components/ui/badge"
-import { MessageBar } from "@/components/ui/message-bar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { TopMenuHandler, type TopMenuHandlerRef } from "@/components/menu/TopMenuHandler"
+import { useTheme } from "next-themes"
 import { 
-  getUserAccessibleViews, 
-  getUserAccessibleModules,
-  getRecentViews,
-  getSuggestedViews,
-  recordViewAccess,
-  getViewsByModule
-} from "@/lib/supabase/modules"
+  Home, 
+  Search, 
+  Settings, 
+  Users, 
+  Clock, 
+  Folder, 
+  ChevronRight,
+  X,
+  Sun,
+  Moon
+} from "lucide-react"
+import { getUserAccessibleViews, getUserAccessibleModules, getViewsByModule, recordViewAccess, getRecentViews, getSuggestedViews } from "@/lib/supabase/modules"
 import { checkUserPermission } from "@/lib/utils/permissions"
-import type { View, Module } from "@/types/module"
-
-interface DashboardProps {
-  user: {
-    id: string
-    name: string
-    initials: string
-    role?: string
-    perfil?: {
-      modules: string[]
-      permissions: string[]
-      restrictions: Record<string, any>
-    }
-  }
-  onLogout: () => void
-}
+import type { Module, View } from "@/types/module"
+import type { User } from "@/types/auth"
 
 interface Tab {
   id: string
@@ -60,45 +36,47 @@ interface Tab {
   isActive: boolean
 }
 
-export default function Dashboard({ user, onLogout }: DashboardProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [tabs, setTabs] = useState<Tab[]>([{ id: "home", title: "Home", viewId: "home", isActive: true }])
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [permissionError, setPermissionError] = useState<string | null>(null)
+interface DashboardProps {
+  user: User
+}
+
+export function Dashboard({ user }: DashboardProps) {
   const [userViews, setUserViews] = useState<View[]>([])
   const [userModules, setUserModules] = useState<Module[]>([])
+  const [moduleViews, setModuleViews] = useState<Record<string, View[]>>({})
   const [recentViews, setRecentViews] = useState<any[]>([])
   const [suggestedViews, setSuggestedViews] = useState<any[]>([])
   const [expandedModules, setExpandedModules] = useState<string[]>([])
-  const [moduleViews, setModuleViews] = useState<Record<string, View[]>>({})
+  const [tabs, setTabs] = useState<Tab[]>([
+    { id: "home", title: "Home", viewId: "home", isActive: true },
+  ])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [permissionError, setPermissionError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
+  
+  const { theme, setTheme } = useTheme()
+  const topMenuRef = useRef<TopMenuHandlerRef>(null)
 
   useEffect(() => {
     setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
 
-  // Carregar dados do sistema
   useEffect(() => {
-    const loadData = async () => {
-      if (!user.role) return
+    if (!user?.role) return
 
-      setLoading(true)
-      
+    const loadData = async () => {
       try {
-        // Carregar views acessíveis ao usuário
+        setLoading(true)
+
+        // Carregar views acessíveis
         const { data: views } = await getUserAccessibleViews(user.role)
         setUserViews(views || [])
 
-        // Carregar módulos acessíveis ao usuário
+        // Carregar módulos acessíveis
         const { data: modules } = await getUserAccessibleModules(user.role)
         setUserModules(modules || [])
 
@@ -253,11 +231,12 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     })
   }
 
+  const handleMenuClick = (menuType: 'menu' | 'process' | 'favorites' | 'reports' | 'systems' | 'help') => {
+    topMenuRef.current?.openModal(menuType)
+  }
+
   const activeTab = tabs.find((tab) => tab.isActive)
   const currentView = activeTab?.viewId || "home"
-
-  // Filtrar views para quick access (primeiras 6)
-  const quickAccessViews = userViews.slice(0, 6)
 
   if (!mounted || loading) {
     return (
@@ -282,6 +261,13 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         </div>
       )}
 
+      {/* Top Menu Handlers */}
+      <TopMenuHandler 
+        ref={topMenuRef}
+        user={user} 
+        onViewSelect={handleViewSelect} 
+      />
+
       {/* Fixed Header */}
       <div className="fixed top-0 left-0 right-0 z-40 bg-background border-b shadow-sm">
         {/* Top Menu Bar */}
@@ -295,22 +281,40 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
             </div>
 
             <nav className="flex items-center space-x-4 text-sm">
-              <button className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors">
+              <button 
+                className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors"
+                onClick={() => handleMenuClick('menu')}
+              >
                 Menu
               </button>
-              <button className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors">
+              <button 
+                className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors"
+                onClick={() => handleMenuClick('process')}
+              >
                 Processar
               </button>
-              <button className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors">
+              <button 
+                className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors"
+                onClick={() => handleMenuClick('favorites')}
+              >
                 Favoritos
               </button>
-              <button className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors">
+              <button 
+                className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors"
+                onClick={() => handleMenuClick('reports')}
+              >
                 Relatórios
               </button>
-              <button className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors">
+              <button 
+                className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors"
+                onClick={() => handleMenuClick('systems')}
+              >
                 Sistemas
               </button>
-              <button className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors">
+              <button 
+                className="hover:bg-slate-700 dark:hover:bg-slate-800 px-3 py-1 rounded transition-colors"
+                onClick={() => handleMenuClick('help')}
+              >
                 Ajuda
               </button>
             </nav>
@@ -323,32 +327,30 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               onClick={toggleTheme}
               className="text-white hover:bg-slate-700 dark:hover:bg-slate-800"
             >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
             </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onLogout}
-              className="text-white hover:bg-slate-700 dark:hover:bg-slate-800"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-
-            <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
-              {user.initials}
-            </div>
+            <span className="text-sm font-medium">{user.nomeCompleto}</span>
+            <Badge variant="secondary" className="text-xs">
+              {user.role}
+            </Badge>
           </div>
         </div>
 
-        {/* Toolbar */}
-        <div className="flex h-12 items-center justify-between px-4 bg-slate-100 dark:bg-slate-800 border-b">
-          <div className="flex items-center space-x-2 flex-1">
+        {/* Navigation Bar */}
+        <div className="flex h-14 items-center justify-between px-4 bg-background border-b">
+          <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => switchTab("home")}
-              className={`${tabs.find((t) => t.id === "home")?.isActive ? "bg-background shadow-sm" : ""} hover:bg-background/80`}
+              onClick={() => {
+                setTabs([{ id: "home", title: "Home", viewId: "home", isActive: true }])
+              }}
+              className={`${currentView === "home" ? 
+                "bg-background shadow-sm" : ""} hover:bg-background/80`}
             >
               <Home className="h-4 w-4" />
             </Button>
@@ -364,22 +366,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                 className="pl-9 h-8 text-sm border focus:border-blue-500 bg-background"
               />
             </form>
-
-            <div className="w-px h-6 bg-border mx-2" />
-
-            {/* Quick Access Views (dinâmico) */}
-            {quickAccessViews.map((view) => (
-              <Button
-                key={view.alias}
-                variant="ghost"
-                size="sm"
-                onClick={() => handleViewSelect(view.alias, view.name)}
-                title={view.name}
-                className="hover:bg-background/80"
-              >
-                <Users className="h-4 w-4" />
-              </Button>
-            ))}
 
             <div className="w-px h-6 bg-border mx-2" />
 
@@ -417,34 +403,28 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                className="flex items-center space-x-2 px-4 py-2 text-sm truncate"
              >
                {tab.viewId === "home" ? (
-                 <Home className="h-3 w-3 flex-shrink-0" />
+                 <Home className="h-4 w-4" />
                ) : (
-                 <Users className="h-3 w-3 flex-shrink-0" />
+                 <Users className="h-4 w-4" />
                )}
-               <span className="truncate max-w-32">{tab.title}</span>
+               <span>{tab.title}</span>
              </button>
-
-             {tab.id !== "home" && (
-               <button onClick={() => closeTab(tab.id)} className="p-1 hover:bg-red-500/20 rounded transition-colors">
+             {tab.viewId !== "home" && (
+               <button
+                 onClick={() => closeTab(tab.id)}
+                 className="p-1 ml-1 hover:bg-muted rounded"
+               >
                  <X className="h-3 w-3" />
                </button>
              )}
            </div>
          ))}
-
-         <Button
-           variant="ghost"
-           size="sm"
-           onClick={() => openNewTab("new-view", "Nova View")}
-           className="flex-shrink-0 px-2 hover:bg-muted"
-         >
-           <Plus className="h-3 w-3" />
-         </Button>
        </div>
      </div>
 
-     {/* Main Content with top padding for fixed header */}
-     <main className={`pt-36 pb-16 ${permissionError ? 'pt-52' : ''}`}>
+     {/* Main Content */}
+     <main className={`transition-all duration-300 ${
+       currentView === "home" ? 'pt-52' : 'pt-52'}`}>
        {currentView === "home" ? (
          <div className="p-6 space-y-8">
            {/* Recent Views */}
@@ -490,7 +470,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                          </CardTitle>
                          <ChevronRight 
                            className={`h-4 w-4 transition-transform ${
-                             expandedModules.includes(module.id) ? 'rotate-90' : ''
+                             expandedModules.includes(module.id) ?
+                             'rotate-90' : ''
                            }`} 
                          />
                        </div>
