@@ -4,26 +4,30 @@ import { useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { BarChart3, DollarSign, Package, TrendingUp, AlertCircle, ExternalLink } from "lucide-react"
+import { AlertCircle, Loader2 } from "lucide-react"
 
-// Importar as views de usuários
+// Views hardcoded (ainda mantidas por compatibilidade)
 import UserCreateView from "@/components/modules/users/UserCreateView"
 import UserEditView from "@/components/modules/users/UserEditView"
 import UserViewView from "@/components/modules/users/UserViewView"
 import UserPermissionView from "@/components/modules/users/UserPermissionView"
-
-// Importar as views de materiais existentes
 import CategoryCreateView from "@/components/modules/materials/CategoryCreateView"
 import CategoryEditView from "@/components/modules/materials/CategoryEditView"
 import DepositCreateView from "@/components/modules/materials/DepositCreateView"
 import DepositEditView from "@/components/modules/materials/DepositEditView"
-
-// Importar as novas views de materiais
 import MaterialCreateView from "@/components/modules/materials/MaterialCreateView"
 import MaterialEditView from "@/components/modules/materials/MaterialEditView"
 import MaterialDetailView from "@/components/modules/materials/MaterialDetailView"
+import ViewBuilderManager from "./modules/view-builder/ViewBuilderManager"
 
+
+// Renderizador dinâmico
+import DynamicViewRenderer from "@/components/DynamicViewRenderer"
+
+// Hooks e utils
+import { useViewRenderer } from "@/hooks/useViewRenderer"
 import { recordViewAccess } from "@/lib/supabase/modules"
+import ViewBuilderMain from "./modules/view-builder/ViewBuilderMain"
 
 interface ViewRendererProps {
   viewId: string
@@ -32,6 +36,8 @@ interface ViewRendererProps {
 }
 
 export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRendererProps) {
+  const { config, loading, error } = useViewRenderer(viewId, currentUser?.role || 'user')
+
   // Registrar acesso quando a view é renderizada
   useEffect(() => {
     if (currentUser && viewId !== 'home') {
@@ -39,8 +45,95 @@ export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRe
     }
   }, [currentUser, viewId])
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-muted-foreground">Carregando view...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error || !config) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold capitalize">{viewId.replace(/-/g, " ")}</h1>
+          <Badge variant="destructive">Erro</Badge>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Erro ao carregar view
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">
+                {error || `A view "${viewId}" não foi encontrada ou você não tem acesso a ela.`}
+              </p>
+              <Button variant="outline" onClick={() => onOpenView?.('home', 'Home')}>
+                Voltar ao início
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Renderizar baseado no tipo de view
   const renderView = () => {
-    // Views do módulo de usuários (dinâmicas do banco)
+    switch (config.viewType) {
+      case 'development':
+        // Views dinâmicas em desenvolvimento
+        if (config.config) {
+          return (
+            <DynamicViewRenderer
+              config={config.config}
+              currentUser={currentUser}
+              onOpenView={onOpenView}
+            />
+          )
+        }
+        break
+
+      case 'database':
+        // Views do banco de dados
+        if (config.componentPath?.startsWith('dynamic:')) {
+          // View dinâmica promovida para produção
+          const dynamicViewId = config.componentPath.replace('dynamic:', '')
+          // TODO: Implementar carregamento de view dinâmica por ID
+          return (
+            <div className="p-6">
+              <p>View dinâmica de produção (ID: {dynamicViewId}) - Em desenvolvimento</p>
+            </div>
+          )
+        } else {
+          // Component path tradicional - delegar para sistema hardcoded
+          return renderHardcodedView()
+        }
+
+      case 'hardcoded':
+        // Views hardcoded tradicionais
+        return renderHardcodedView()
+
+      default:
+        return (
+          <div className="p-6">
+            <p>Tipo de view não reconhecido: {config.viewType}</p>
+          </div>
+        )
+    }
+  }
+
+  const renderHardcodedView = () => {
     switch (viewId) {
       case "usr001":
         return (
@@ -72,7 +165,6 @@ export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRe
           />
         )
 
-      // Views do módulo de materiais - Categorias e Depósitos
       case "mcat01":
         return (
           <CategoryCreateView
@@ -105,7 +197,6 @@ export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRe
           />
         )
 
-      // NOVAS VIEWS DE MATERIAIS
       case "cr001":
         return (
           <MaterialCreateView
@@ -130,67 +221,33 @@ export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRe
           />
         )
 
-      // Views de exemplo - você pode removê-las ou movê-las para o banco
-      case "financial-report":
-        return (
-          <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <DollarSign className="h-8 w-8 text-green-600" />
-                Financial Report
-              </h1>
-              <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900 dark:text-green-300">
-                Demo View
-              </Badge>
-            </div>
+        case "vb001":
+      return (
+        <ViewBuilderMain
+          currentUser={currentUser}
+          onSuccess={() => onOpenView?.('vb002', 'Gerenciar Views')}
+        />
+      )
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Demo Financial Data</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Esta é uma view de demonstração. Dados reais seriam carregados aqui.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )
-
-      case "inventory-control":
-        return (
-          <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <Package className="h-8 w-8 text-blue-600" />
-                Inventory Control
-              </h1>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                Demo View
-              </Badge>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Demo Inventory Data</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Esta é uma view de demonstração. Dados reais seriam carregados aqui.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )
+    case "vb002":
+      return (
+        <ViewBuilderManager
+          currentUser={currentUser}
+          onCreateNew={() => onOpenView?.('vb001', 'Construtor de Views')}
+          onEditView={(view) => {
+            console.log('Editar view:', view)
+            onOpenView?.('vb001', `Editar: ${view.name}`)
+          }}
+          onOpenView={onOpenView}
+        />
+      )
 
       default:
         return (
           <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-bold capitalize">{viewId.replace(/-/g, " ")}</h1>
-              <Badge variant="outline">View não encontrada</Badge>
+              <Badge variant="outline">View não implementada</Badge>
             </div>
 
             <Card>
