@@ -19,6 +19,9 @@ import MaterialCreateView from "@/components/modules/materials/MaterialCreateVie
 import MaterialEditView from "@/components/modules/materials/MaterialEditView"
 import MaterialDetailView from "@/components/modules/materials/MaterialDetailView"
 import ViewBuilderManager from "./modules/view-builder/ViewBuilderManager"
+import ClientCreateView from './modules/clients/ClientCreateView'
+import ClientEditView from './modules/clients/ClientEditView'
+import ClientDetailView from './modules/clients/ClientDetailView'
 
 
 // Renderizador dinâmico
@@ -238,6 +241,30 @@ export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRe
             console.log('Editar view:', view)
             onOpenView?.('vb001', `Editar: ${view.name}`)
           }}
+          onOpenView={onOpenView}
+        />
+      )
+
+      case "cm001":
+      return (
+        <ClientCreateView
+          currentUser={currentUser}
+          onOpenView={onOpenView}
+        />
+      )
+
+    case "cm002":
+      return (
+        <ClientEditView
+          currentUser={currentUser}
+          onOpenView={onOpenView}
+        />
+      )
+
+    case "cm003":
+      return (
+        <ClientDetailView
+          currentUser={currentUser}
           onOpenView={onOpenView}
         />
       )

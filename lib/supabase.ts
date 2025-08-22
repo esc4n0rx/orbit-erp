@@ -1,3 +1,4 @@
+// lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -32,7 +33,15 @@ export class SupabaseClient {
   get viewAccessHistory() {
     return supabase.from('orbit_erp_view_access_history_dev')
   }
+
+  get clients() {
+    return supabase.from('orbit_erp_clients_dev')
+  }
 }
 
 // Instância padrão
 export const dbClient = new SupabaseClient()
+
+// Para compatibilidade com código existente
+const supabaseAdmin = supabase
+export { supabaseAdmin }
