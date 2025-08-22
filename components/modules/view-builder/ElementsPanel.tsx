@@ -11,7 +11,9 @@ import {
   MousePointer,
   Table,
   BarChart3,
-  Search
+  Search,
+  Database,
+  PieChart
 } from 'lucide-react'
 import type { ElementType } from '@/types/view-builder'
 
@@ -87,6 +89,34 @@ const ELEMENT_TYPES: ElementType[] = [
       columns: ['Coluna 1', 'Coluna 2', 'Coluna 3']
     },
     configurable: ['title', 'columns', 'className']
+  },
+  {
+    id: 'data_table',
+    name: 'Tabela de Dados',
+    category: 'data',
+    icon: 'Database',
+    defaultProps: {
+      title: 'Relatório de Dados',
+      columns: ['ID', 'Nome', 'Status'],
+      showPagination: true,
+      showSearch: true
+    },
+    configurable: ['title', 'columns', 'showPagination', 'showSearch', 'className'],
+    requiresDataSource: true
+  },
+  {
+    id: 'data_chart',
+    name: 'Gráfico de Dados',
+    category: 'data',
+    icon: 'PieChart',
+    defaultProps: {
+      title: 'Gráfico',
+      chartType: 'bar',
+      xAxis: '',
+      yAxis: ''
+    },
+    configurable: ['title', 'chartType', 'xAxis', 'yAxis', 'className'],
+    requiresDataSource: true
   }
 ]
 
@@ -96,14 +126,16 @@ const ICONS = {
   FileText,
   MousePointer,
   Table,
-  BarChart3
+  BarChart3,
+  Database,
+  PieChart
 }
 
 interface ElementsPanelProps {
-  onElementSelect: (element: ElementType, position: { x: number; y: number }) => void
+  onElementDrop: (element: ElementType, position: { x: number; y: number }) => void
 }
 
-export default function ElementsPanel({ onElementSelect }: ElementsPanelProps) {
+export default function ElementsPanel({ onElementDrop }: ElementsPanelProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
@@ -112,7 +144,8 @@ export default function ElementsPanel({ onElementSelect }: ElementsPanelProps) {
     { id: 'layout', name: 'Layout' },
     { id: 'form', name: 'Formulário' },
     { id: 'display', name: 'Exibição' },
-    { id: 'interactive', name: 'Interativo' }
+    { id: 'interactive', name: 'Interativo' },
+    { id: 'data', name: 'Dados' }
   ]
 
   const filteredElements = ELEMENT_TYPES.filter(element => {
@@ -123,6 +156,7 @@ export default function ElementsPanel({ onElementSelect }: ElementsPanelProps) {
 
   const handleDragStart = (e: React.DragEvent, element: ElementType) => {
     e.dataTransfer.setData('application/json', JSON.stringify(element))
+    e.dataTransfer.effectAllowed = 'copy'
   }
 
   return (
@@ -165,13 +199,22 @@ export default function ElementsPanel({ onElementSelect }: ElementsPanelProps) {
               key={element.id}
               draggable
               onDragStart={(e) => handleDragStart(e, element)}
-              className="p-3 border border-border rounded-lg cursor-move hover:bg-muted/50 transition-colors"
+              className={`p-3 border border-border rounded-lg cursor-move hover:bg-muted/50 transition-colors ${
+                element.requiresDataSource ? 'border-l-4 border-l-primary' : ''
+              }`}
             >
               <div className="flex items-center gap-3">
                 <IconComponent className="h-5 w-5 text-muted-foreground" />
-                <div>
+                <div className="flex-1">
                   <p className="font-medium text-sm">{element.name}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{element.category}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs text-muted-foreground capitalize">{element.category}</p>
+                    {element.requiresDataSource && (
+                      <Badge variant="outline" className="text-xs">
+                        Precisa dados
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -183,6 +226,17 @@ export default function ElementsPanel({ onElementSelect }: ElementsPanelProps) {
             Nenhum elemento encontrado
           </div>
         )}
+
+        {/* Instructions */}
+        <div className="mt-6 p-3 bg-muted/50 rounded-lg">
+          <h4 className="text-sm font-medium mb-2">Como usar:</h4>
+          <ul className="text-xs text-muted-foreground space-y-1">
+            <li>• Arraste elementos para o canvas</li>
+            <li>• Clique para selecionar e configurar</li>
+            <li>• Elementos com borda azul precisam de dados</li>
+            <li>• Use o painel de dados para conectar tabelas</li>
+          </ul>
+        </div>
       </CardContent>
     </div>
   )

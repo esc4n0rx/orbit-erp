@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Settings, 
   Eye, 
@@ -16,14 +17,20 @@ import {
   Square, 
   FileText,
   MousePointer,
-  Trash2
+  Trash2,
+  Database,
+  Play
 } from 'lucide-react'
 import ElementsPanel from './ElementsPanel'
 import Canvas from './Canvas'
 import PropertiesPanel from './PropertiesPanel'
 import PreviewModal from './PreviewModal'
+import DataSourcesPanel from './DataSourcesPanel'
+import QueryBuilder from './QueryBuilder'
 import { useViewBuilder } from '@/hooks/useViewBuilder'
+import { executeCustomQuery } from '@/lib/supabase/data-sources'
 import type { DynamicViewConfig, ViewComponent, ElementType } from '@/types/view-builder'
+import type { DataSource, QueryBuilder as QueryBuilderType } from '@/types/data-sources'
 
 interface ViewBuilderMainProps {
   currentUser: any
@@ -36,17 +43,31 @@ export default function ViewBuilderMain({ currentUser, onSuccess }: ViewBuilderM
     selectedElement,
     loading,
     error,
+    availableDataSources,
     updateViewInfo,
     addComponent,
     updateComponent,
     removeComponent,
     selectElement,
+    addDataSource,
+    removeDataSource,
+    addQuery,
+    updateQuery,
+    removeQuery,
+    loadDataSources,
     saveView,
     resetBuilder
   } = useViewBuilder()
 
   const [showPreview, setShowPreview] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showQueryBuilder, setShowQueryBuilder] = useState(false)
+  const [selectedDataSourceForQuery, setSelectedDataSourceForQuery] = useState<DataSource | null>(null)
+  const [activeTab, setActiveTab] = useState<'elements' | 'data'>('elements')
+
+  useEffect(() => {
+    loadDataSources()
+  }, [loadDataSources])
 
   const handleSave = async () => {
     const result = await saveView(currentUser.id)
@@ -63,12 +84,94 @@ export default function ViewBuilderMain({ currentUser, onSuccess }: ViewBuilderM
       position: {
         x: position.x,
         y: position.y,
-        w: 6,
-        h: 4
+        w: elementType.id === 'table' || elementType.id === 'data_table' ? 8 : 6,
+        h: elementType.id === 'table' || elementType.id === 'data_table' ? 6 : 4
       }
     }
     addComponent(newComponent)
   }, [addComponent])
+
+  const handleDataSourceSelect = useCallback((dataSourceId: string) => {
+    addDataSource(dataSourceId)
+  }, [addDataSource])
+
+  const handleDataSourceRemove = useCallback((dataSourceId: string) => {
+    removeDataSource(dataSourceId)
+  }, [removeDataSource])
+
+  const handleQueryBuilder = useCallback((dataSource: DataSource) => {
+    setSelectedDataSourceForQuery(dataSource)
+    setShowQueryBuilder(true)
+  }, [])
+
+  const handleQuerySave = useCallback((query: QueryBuilderType) => {
+    addQuery(query)
+    setShowQueryBuilder(false)
+    setSelectedDataSourceForQuery(null)
+  }, [addQuery])
+
+  const handleQueryTest = useCallback(async (query: QueryBuilderType) => {
+    try {
+      // Construir uma query SQL básica para teste
+      const fields = query.fields.map(field => 
+        field.aggregation 
+          ? `${field.aggregation.toUpperCase()}(${field.source_table}.${field.column_name}) as ${field.alias || field.column_name}`
+          : `${field.source_table}.${field.column_name}${field.alias ? ` as ${field.alias}` : ''}`
+      ).join(', ')
+
+      const mainTable = query.fields[0]?.source_table
+      if (!mainTable) {
+        alert('Selecione pelo menos um campo para testar')
+        return
+      }
+
+      let sql = `SELECT ${fields} FROM ${mainTable}`
+
+      // Adicionar JOINs
+      query.joins.forEach(join => {
+        sql += ` ${join.join_type} JOIN ${join.target_table} ON ${join.source_table}.${join.source_column} = ${join.target_table}.${join.target_column}`
+      })
+
+      // Adicionar WHERE
+      if (query.filters.length > 0) {
+        const conditions = query.filters.map((filter, index) => {
+          const operator = filter.operator === 'equals' ? '=' : 
+                          filter.operator === 'not_equals' ? '!=' :
+                          filter.operator === 'greater_than' ? '>' :
+                          filter.operator === 'less_than' ? '<' :
+                          filter.operator === 'contains' ? 'ILIKE' : '='
+          
+          const value = filter.operator === 'contains' ? `'%${filter.value}%'` : `'${filter.value}'`
+          const condition = `${filter.source_table}.${filter.column_name} ${operator} ${value}`
+          
+          return index === 0 ? condition : `${filter.logical_operator || 'AND'} ${condition}`
+        }).join(' ')
+        
+        sql += ` WHERE ${conditions}`
+      }
+
+      // Adicionar LIMIT
+      if (query.limit) {
+        sql += ` LIMIT ${query.limit}`
+      }
+
+      console.log('SQL Query:', sql)
+
+      const result = await executeCustomQuery(sql)
+      
+      if (result.error) {
+        alert(`Erro na consulta: ${result.error}`)
+      } else {
+        alert(`Consulta executada com sucesso! ${result.data?.length || 0} registros encontrados.\n\nQuery: ${sql}`)
+      }
+    } catch (error) {
+      alert('Erro ao testar consulta: ' + error)
+    }
+  }, [])
+
+  const getSelectedDataSources = useCallback(() => {
+    return availableDataSources.filter(ds => config.data_sources.includes(ds.id))
+  }, [availableDataSources, config.data_sources])
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -78,7 +181,7 @@ export default function ViewBuilderMain({ currentUser, onSuccess }: ViewBuilderM
           <div>
             <h1 className="text-xl font-semibold">View Builder</h1>
             <p className="text-sm text-muted-foreground">
-              {config.name || 'Nova View'} • {config.components.length} elemento(s)
+              {config.name || 'Nova View'} • {config.components.length} elemento(s) • {config.data_sources.length} fonte(s) de dados
             </p>
           </div>
         </div>
@@ -97,6 +200,7 @@ export default function ViewBuilderMain({ currentUser, onSuccess }: ViewBuilderM
             variant="outline"
             size="sm"
             onClick={() => setShowPreview(true)}
+            disabled={config.components.length === 0}
           >
             <Eye className="h-4 w-4 mr-2" />
             Preview
@@ -115,9 +219,33 @@ export default function ViewBuilderMain({ currentUser, onSuccess }: ViewBuilderM
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Elements Panel */}
-        <div className="w-64 border-r border-border bg-muted/10">
-          <ElementsPanel onElementSelect={handleElementDrop} />
+        {/* Left Panel - Elements & Data Sources */}
+        <div className="w-80 border-r border-border bg-muted/10">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+            <TabsList className="grid w-full grid-cols-2 m-2">
+              <TabsTrigger value="elements" className="flex items-center gap-2">
+                <Square className="h-4 w-4" />
+                Elementos
+              </TabsTrigger>
+              <TabsTrigger value="data" className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Dados
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="elements" className="h-[calc(100vh-140px)] overflow-hidden">
+              <ElementsPanel onElementDrop={handleElementDrop} />
+            </TabsContent>
+            
+            <TabsContent value="data" className="h-[calc(100vh-140px)] overflow-hidden">
+              <DataSourcesPanel
+                selectedDataSources={config.data_sources}
+                onDataSourceSelect={handleDataSourceSelect}
+                onDataSourceRemove={handleDataSourceRemove}
+                onQueryBuilder={handleQueryBuilder}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Canvas Area */}
@@ -128,6 +256,7 @@ export default function ViewBuilderMain({ currentUser, onSuccess }: ViewBuilderM
             onElementSelect={selectElement}
             onElementUpdate={updateComponent}
             onElementDelete={removeComponent}
+            onElementAdd={addComponent}
           />
         </div>
 
@@ -147,6 +276,19 @@ export default function ViewBuilderMain({ currentUser, onSuccess }: ViewBuilderM
         onClose={() => setShowPreview(false)}
         config={config}
       />
+
+      {/* Query Builder Modal */}
+      {showQueryBuilder && selectedDataSourceForQuery && (
+        <QueryBuilder
+          dataSources={getSelectedDataSources()}
+          onQuerySave={handleQuerySave}
+          onQueryTest={handleQueryTest}
+          onClose={() => {
+            setShowQueryBuilder(false)
+            setSelectedDataSourceForQuery(null)
+          }}
+        />
+      )}
 
       {/* Settings Modal */}
       {showSettings && (
@@ -226,9 +368,30 @@ export default function ViewBuilderMain({ currentUser, onSuccess }: ViewBuilderM
         </div>
       )}
 
+      {/* Error Display */}
       {error && (
-        <div className="fixed top-4 right-4 bg-destructive text-destructive-foreground p-4 rounded-lg">
-          {error}
+        <div className="fixed top-4 right-4 bg-destructive text-destructive-foreground p-4 rounded-lg shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <span>{error}</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => window.location.reload()}
+              className="text-destructive-foreground hover:text-destructive-foreground"
+            >
+              ×
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-40">
+          <div className="bg-background p-4 rounded-lg shadow-lg flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            <span>Salvando...</span>
+          </div>
         </div>
       )}
     </div>

@@ -3,7 +3,9 @@ import {
   saveDevelopmentView, 
   updateDevelopmentView 
 } from '@/lib/supabase/view-renderer'
+import { getAvailableDataSources } from '@/lib/supabase/data-sources'
 import type { DynamicViewConfig, ViewComponent } from '@/types/view-builder'
+import type { DataSource, QueryBuilder } from '@/types/data-sources'
 
 export function useViewBuilder(initialConfig?: DynamicViewConfig) {
   const [config, setConfig] = useState<DynamicViewConfig>(
@@ -13,6 +15,8 @@ export function useViewBuilder(initialConfig?: DynamicViewConfig) {
       description: '',
       alias: '',
       components: [],
+      data_sources: [],
+      queries: [],
       layout: {
         gridCols: 12,
         responsive: true
@@ -29,6 +33,14 @@ export function useViewBuilder(initialConfig?: DynamicViewConfig) {
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [availableDataSources, setAvailableDataSources] = useState<DataSource[]>([])
+
+  const loadDataSources = useCallback(async () => {
+    const { data } = await getAvailableDataSources()
+    if (data) {
+      setAvailableDataSources(data)
+    }
+  }, [])
 
   const updateViewInfo = useCallback((updates: Partial<DynamicViewConfig>) => {
     setConfig(prev => ({
@@ -84,6 +96,67 @@ export function useViewBuilder(initialConfig?: DynamicViewConfig) {
     setSelectedElement(componentId)
   }, [])
 
+  // Data Sources Management
+  const addDataSource = useCallback((dataSourceId: string) => {
+    setConfig(prev => ({
+      ...prev,
+      data_sources: [...prev.data_sources, dataSourceId],
+      metadata: {
+        ...prev.metadata,
+        updatedAt: new Date().toISOString()
+      }
+    }))
+  }, [])
+
+  const removeDataSource = useCallback((dataSourceId: string) => {
+    setConfig(prev => ({
+      ...prev,
+      data_sources: prev.data_sources.filter(id => id !== dataSourceId),
+      // Remove queries que usam esta data source
+      queries: prev.queries.filter(query => !query.data_sources.includes(dataSourceId)),
+      metadata: {
+        ...prev.metadata,
+        updatedAt: new Date().toISOString()
+      }
+    }))
+  }, [])
+
+  // Query Management
+  const addQuery = useCallback((query: QueryBuilder) => {
+    setConfig(prev => ({
+      ...prev,
+      queries: [...prev.queries, query],
+      metadata: {
+        ...prev.metadata,
+        updatedAt: new Date().toISOString()
+      }
+    }))
+  }, [])
+
+  const updateQuery = useCallback((queryId: string, updates: Partial<QueryBuilder>) => {
+    setConfig(prev => ({
+      ...prev,
+      queries: prev.queries.map(query =>
+        query.id === queryId ? { ...query, ...updates } : query
+      ),
+      metadata: {
+        ...prev.metadata,
+        updatedAt: new Date().toISOString()
+      }
+    }))
+  }, [])
+
+  const removeQuery = useCallback((queryId: string) => {
+    setConfig(prev => ({
+      ...prev,
+      queries: prev.queries.filter(query => query.id !== queryId),
+      metadata: {
+        ...prev.metadata,
+        updatedAt: new Date().toISOString()
+      }
+    }))
+  }, [])
+
   const saveView = useCallback(async (userId: string) => {
     if (!config.name || !config.alias) {
       setError('Nome e alias são obrigatórios')
@@ -103,12 +176,10 @@ export function useViewBuilder(initialConfig?: DynamicViewConfig) {
         status: 'development' as const
       }
 
-      let result:any
+      let result: any
       if (config.id) {
-        // Atualizar view existente
         result = await updateDevelopmentView(config.id, viewData)
       } else {
-        // Criar nova view
         result = await saveDevelopmentView(viewData)
         if (result.data) {
           setConfig(prev => ({ ...prev, id: result.data!.id }))
@@ -137,6 +208,8 @@ export function useViewBuilder(initialConfig?: DynamicViewConfig) {
       description: '',
       alias: '',
       components: [],
+      data_sources: [],
+      queries: [],
       layout: {
         gridCols: 12,
         responsive: true
@@ -157,11 +230,18 @@ export function useViewBuilder(initialConfig?: DynamicViewConfig) {
     selectedElement,
     loading,
     error,
+    availableDataSources,
     updateViewInfo,
     addComponent,
     updateComponent,
     removeComponent,
     selectElement,
+    addDataSource,
+    removeDataSource,
+    addQuery,
+    updateQuery,
+    removeQuery,
+    loadDataSources,
     saveView,
     resetBuilder
   }
