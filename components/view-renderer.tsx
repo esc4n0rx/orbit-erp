@@ -22,6 +22,9 @@ import ViewBuilderManager from "./modules/view-builder/ViewBuilderManager"
 import ClientCreateView from './modules/clients/ClientCreateView'
 import ClientEditView from './modules/clients/ClientEditView'
 import ClientDetailView from './modules/clients/ClientDetailView'
+import SupplierCreateView from './modules/suppliers/SupplierCreateView'
+import SupplierEditView from './modules/suppliers/SupplierEditView'
+import SupplierDetailView from './modules/suppliers/SupplierDetailView'
 
 
 // Renderizador dinâmico
@@ -268,6 +271,30 @@ export default function ViewRenderer({ viewId, currentUser, onOpenView }: ViewRe
           onOpenView={onOpenView}
         />
       )
+
+      case "fm001":
+          return (
+            <SupplierCreateView
+              currentUser={currentUser}
+              onOpenView={onOpenView}
+            />
+          )
+
+        case "fm002":
+          return (
+            <SupplierEditView
+              currentUser={currentUser}
+              onOpenView={onOpenView}
+            />
+          )
+
+        case "fm003":
+          return (
+            <SupplierDetailView
+              currentUser={currentUser}
+              onOpenView={onOpenView}
+            />
+          )
 
       default:
         return (

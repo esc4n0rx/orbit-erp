@@ -37,6 +37,15 @@ export class SupabaseClient {
   get clients() {
     return supabase.from('orbit_erp_clients_dev')
   }
+
+  get suppliers() {
+    return supabase.from('orbit_erp_suppliers_dev')
+  }
+  
+  get supplierMaterials() {
+    return supabase.from('orbit_erp_supplier_materials_dev')
+  }
+  
 }
 
 // Instância padrão
